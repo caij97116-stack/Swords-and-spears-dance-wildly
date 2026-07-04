@@ -111,12 +111,18 @@
                     <input id="api-key" class="w-full p-3 rounded-sm" type="password">
                 </div>
                 <div class="flex flex-col md:flex-row gap-4 md:items-end">
-                    <button id="btn-pull-models" class="border border-[var(--accent-main)] text-[var(--accent-main)] px-6 py-3 rounded-sm font-bold hover:bg-[var(--accent-main)] hover:text-white transition-all w-full md:w-auto">同步模型库</button>
+                    <button id="btn-pull-models" class="border border-[var(--accent-main)] text-[var(--accent-main)] px-6 py-3 rounded-sm font-bold hover:bg-[var(--accent-main)] hover:text-white transition-all w-full md:w-auto whitespace-nowrap">抽取可用模型</button>
                     <div class="flex-1">
-                        <label class="block text-xs md:text-sm text-[var(--text-muted)] mb-2 tracking-widest">演算模型</label>
-                        <select id="model-select" class="w-full p-3 rounded-sm hidden"></select>
-                        <input id="model-input" class="w-full p-3 rounded-sm" placeholder="如 gpt-4-turbo">
+                        <label class="block text-xs md:text-sm text-[var(--text-muted)] mb-2 tracking-widest">演算模型 <span class="opacity-70">(抽取后点击选择，或手动输入)</span></label>
+                        <input id="model-input" class="w-full p-3 rounded-sm" placeholder="点击上方「抽取可用模型」，或直接手动输入，如 gpt-4-turbo">
                     </div>
+                </div>
+                <div id="model-list-wrap" class="hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] md:text-xs text-[var(--text-muted)] tracking-widest">可用模型列表（点击选中，已选中项高亮）</span>
+                        <span id="model-list-count" class="text-[10px] md:text-xs text-[var(--text-muted)] font-mono"></span>
+                    </div>
+                    <div id="model-list" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)]"></div>
                 </div>
                 <div class="pt-6 border-t border-[var(--border-line)]">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-3 gap-2">
@@ -208,11 +214,20 @@
                     <button class="md:hidden text-[var(--text-muted)] text-xl" onclick="toggleLeftSidebar()">×</button>
                 </div>
                 <div class="p-3 border-b border-[var(--border-line)]">
+                    <div id="world-entry" onclick="selectWorld()" class="p-3 rounded-sm cursor-pointer transition-all border-l-4 bg-[var(--bg-input)] border-transparent hover:bg-[var(--bg-panel)]">
+                        <div class="flex justify-between items-center">
+                            <div class="font-bold text-[var(--accent-main)] text-sm tracking-widest">🌏 大世界剧情</div>
+                        </div>
+                        <div class="text-[10px] text-[var(--text-muted)] mt-1">本丸主线 · 全员登场 · 自由事件</div>
+                    </div>
+                </div>
+                <div class="p-3 border-b border-[var(--border-line)]">
                     <div class="relative">
                         <input id="sword-search" class="w-full p-2 pl-8 text-xs md:text-sm rounded-sm" placeholder="检索刀剑...">
                         <span class="absolute left-2.5 top-2 text-[var(--text-muted)] text-xs md:text-sm">🔍</span>
                     </div>
                 </div>
+                <div class="px-3 pt-1 pb-0 text-[10px] text-[var(--text-muted)] tracking-widest">或单独与刀剑进行个人剧情：</div>
                 <div id="sword-list" class="flex-1 overflow-y-auto p-2 md:p-4 space-y-2"></div>
             </div>
 
@@ -242,12 +257,15 @@
                 <div id="chat-container" class="hidden flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-40 md:pb-48 z-0"></div>
                 
                 <div id="chat-input-area" class="hidden absolute bottom-0 left-0 w-full p-3 md:p-6 glass-panel border-t border-[var(--border-line)] z-10">
-                    <textarea id="chat-input" class="w-full p-3 md:p-4 rounded-sm text-xs md:text-sm leading-relaxed resize-none h-20 md:h-24" placeholder="【沉浸式输入】描述动作、神态与对话... (Shift+Enter换行)"></textarea>
+                    <textarea id="chat-input" class="w-full p-3 md:p-4 rounded-sm text-xs md:text-sm leading-relaxed resize-none h-20 md:h-24" placeholder="【沉浸式输入】描述动作、神态与对话... (Shift+Enter换行)，或直接点击「推进剧情」让故事自动继续"></textarea>
                     <div class="flex justify-between items-center mt-2 md:mt-4">
                         <div class="flex items-center gap-2">
                             <span id="loading-indicator" class="text-xs md:text-sm font-bold text-[var(--accent-main)] hidden animate-pulse tracking-widest">纺车转动中...</span>
                         </div>
-                        <button id="btn-send" class="btn-primary px-6 md:px-10 py-2 md:py-2.5 rounded-sm font-bold tracking-widest text-xs md:text-sm">落笔</button>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-advance" class="border border-[var(--accent-main)] text-[var(--accent-main)] px-4 md:px-6 py-2 md:py-2.5 rounded-sm font-bold tracking-widest text-xs md:text-sm hover:bg-[var(--accent-main)] hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[var(--accent-main)]" title="不知道说什么？点这个让剧情自动继续">▶ 推进剧情</button>
+                            <button id="btn-send" class="btn-primary px-6 md:px-10 py-2 md:py-2.5 rounded-sm font-bold tracking-widest text-xs md:text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none">落笔</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -259,18 +277,37 @@
                     <button class="text-[var(--text-muted)] text-xl" onclick="toggleRightSidebar()">×</button>
                 </div>
                 <div class="flex border-b border-[var(--border-line)] text-xs md:text-sm">
-                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--accent-main)] border-b-2 border-[var(--accent-main)] transition-colors tracking-widest" id="tab-btn-saniwa" onclick="switchTab('saniwa')">档案</button>
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--accent-main)] border-b-2 border-[var(--accent-main)] transition-colors tracking-widest" id="tab-btn-overview" onclick="switchTab('overview')">总览</button>
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest" id="tab-btn-saniwa" onclick="switchTab('saniwa')">档案</button>
                     <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest" id="tab-btn-sword" onclick="switchTab('sword')">观测</button>
                     <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest" id="tab-btn-log" onclick="switchTab('log')">日志</button>
                 </div>
 
+                <!-- Tab: 大世界总览 (新增功能面板) -->
+                <div id="tab-overview" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 block">
+                    <div class="border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)] p-3 md:p-4">
+                        <h4 class="text-[var(--accent-main)] font-bold mb-2 text-[10px] md:text-xs tracking-widest">当前大世界事件</h4>
+                        <select id="event-select" class="w-full p-2 rounded-sm text-xs md:text-sm"></select>
+                        <p id="overview-event-desc" class="text-[10px] md:text-xs text-[var(--text-muted)] mt-2 leading-relaxed"></p>
+                        <p class="text-[9px] md:text-[10px] text-[var(--text-muted)] mt-2 opacity-70">切换事件仅改变剧情背景设定，不会打断当前对话记录。</p>
+                    </div>
+                    <div class="border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)] p-3 md:p-4">
+                        <div class="flex justify-between items-center mb-2 border-b border-[var(--border-line)] pb-1">
+                            <h4 class="text-[var(--text-main)] font-bold text-[10px] md:text-xs tracking-widest">全员羁绊总览</h4>
+                            <span class="text-[9px] md:text-[10px] text-[var(--text-muted)]">点击进入单人剧情</span>
+                        </div>
+                        <div id="overview-roster" class="space-y-2 mt-2"></div>
+                    </div>
+                </div>
+
                 <!-- Tab: 审神者 -->
-                <div id="tab-saniwa" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 block">
+                <div id="tab-saniwa" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 hidden">
                     <div>
                         <h4 class="text-[var(--accent-main)] font-bold mb-2 text-xl md:text-2xl tracking-wide" id="panel-saniwa-name"></h4>
                         <div class="flex flex-wrap gap-1.5 text-[10px] md:text-xs font-mono mb-2">
                             <span class="border border-[var(--border-line)] px-1.5 py-0.5 rounded-sm text-[var(--text-muted)]" id="panel-saniwa-rank"></span>
                             <span class="border border-[var(--border-line)] px-1.5 py-0.5 rounded-sm text-[var(--text-muted)]" id="panel-saniwa-origin"></span>
+                            <span class="border border-[var(--border-line)] px-1.5 py-0.5 rounded-sm text-[var(--accent-main)]" id="panel-saniwa-path"></span>
                         </div>
                     </div>
                     <div class="space-y-3 border-t border-[var(--border-line)] pt-4">
@@ -348,6 +385,14 @@
                     <div class="border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)] p-3 md:p-4">
                         <h4 class="text-[var(--text-main)] font-bold text-[10px] md:text-xs mb-2 border-b border-[var(--border-line)] pb-1 tracking-widest">时政当前指令</h4>
                         <div id="panel-event-desc" class="text-[10px] md:text-xs text-[var(--text-muted)] leading-relaxed mt-1"></div>
+                    </div>
+                    <div class="border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)] p-3 md:p-4">
+                        <h4 class="text-[var(--text-main)] font-bold text-[10px] md:text-xs mb-2 border-b border-[var(--border-line)] pb-1 tracking-widest flex justify-between">
+                            <span>锻刀记录</span><span class="font-mono">共 <span id="log-smith-count">0</span> 次</span>
+                        </h4>
+                        <ul id="log-smith-list" class="mt-1 space-y-1.5 text-[10px] md:text-xs text-[var(--text-muted)] max-h-24 overflow-y-auto">
+                            <li class="italic">无记录...</li>
+                        </ul>
                     </div>
                     <div class="border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)] p-3 md:p-4">
                         <h4 class="text-[var(--text-main)] font-bold text-[10px] md:text-xs mb-2 border-b border-[var(--border-line)] pb-1 tracking-widest">内政/远征</h4>
@@ -508,6 +553,23 @@
             { id: 132, name: "太郎太刀", type: "大太刀", school: "无", appearance: "黑发金眼，极其高大（超2米），手持巨大的太刀，宛如神明降世。", personality: "超然物外，认为自己是神明使用的实战刀，人类难以驾驭。", background: "真柄直隆使用的巨型大太刀。传闻普通人触碰他便会被神威压碎。", prompt_injection: "语气超然、带着非人的神性。对审神者有着居高临下的庇护欲。若审神者灵力极高（S级），他会完全臣服并展现出毁天灭地的力量。" }
         ];
 
+        // 名称 -> id 快速映射 (大世界模式下用于匹配AI返回的刀剑状态更新)
+        const swordNameToId = {};
+        toukenData.forEach(s => { swordNameToId[s.name] = s.id; });
+
+        // ==========================================
+        // API 请求地址处理 (兼容用户填写 /v1 或不填 /v1 两种情况)
+        // ==========================================
+        function normalizeEndpoint(ep) {
+            ep = (ep || '').trim();
+            ep = ep.replace(/\/+$/, '');       // 去掉末尾斜杠
+            ep = ep.replace(/\/v1$/i, '');     // 若用户已填写 /v1 结尾，去掉，避免重复拼接
+            return ep;
+        }
+        function buildApiUrl(ep, path) {
+            return `${normalizeEndpoint(ep)}/v1/${path}`;
+        }
+
         // ==========================================
         // 状态管理 (LocalStorage & State)
         // ==========================================
@@ -520,7 +582,7 @@
                 stamina: 100, morality: 50, prestige: 10, resources: { charcoal: 999, steel: 999, coolant: 999, whetstone: 999, koban: 50000 }, inventory: [...gameData.defaultItems]
             },
             currentEvent: gameData.events[0],
-            currentPartner: null, chatHistory: {}, swordsStats: {}, logs: { smithCount: 0, smithing: [], internals: [] }
+            currentPartner: null, currentMode: 'world', chatHistory: {}, worldChatHistory: [], swordsStats: {}, logs: { smithCount: 0, smithing: [], internals: [] }
         };
 
         function initSwordStats(id) {
@@ -573,7 +635,8 @@
             fillSelect('char-rank', gameData.ranks); fillSelect('char-origin', gameData.origins);
             fillSelect('char-mana-type', gameData.manaTypes); fillSelect('char-type', gameData.types);
             fillSelect('char-path', gameData.paths);
-            
+            fillSelect('event-select', gameData.events);
+
             const renderTraits = (id, arr, type) => {
                 document.getElementById(id).innerHTML = arr.map(t => `<span onclick="toggleTrait('${type}', '${t}')" id="t-${type.substring(0,3)}-${t}" class="px-3 py-1.5 rounded-sm text-xs cursor-pointer trait-btn shadow-sm">${t}</span>`).join('');
             };
@@ -595,6 +658,7 @@
             document.getElementById('api-select').value = id; document.getElementById('api-name').value = conf.name;
             document.getElementById('api-endpoint').value = conf.endpoint; document.getElementById('api-key').value = conf.key;
             document.getElementById('model-input').value = conf.model; document.getElementById('api-jailbreak').value = conf.jailbreak;
+            document.getElementById('model-list-wrap').classList.add('hidden'); // 切换节点后需重新抽取，避免误用上一节点的模型列表
             state.currentApiId = id; localStorage.setItem('tk_current_api_v7', id);
         }
 
@@ -603,6 +667,7 @@
             document.getElementById('api-select').value = ""; document.getElementById('api-name').value = "新深渊法则";
             document.getElementById('api-endpoint').value = "https://api.openai.com"; document.getElementById('api-key').value = "";
             document.getElementById('model-input').value = ""; document.getElementById('api-jailbreak').value = jailbreaks[0].content;
+            document.getElementById('model-list-wrap').classList.add('hidden');
             state.currentApiId = null;
         });
 
@@ -621,23 +686,59 @@
             refreshApiSelects(); alert("法则已保存！");
         });
 
+        function renderModelList(list) {
+            const wrap = document.getElementById('model-list-wrap');
+            const listEl = document.getElementById('model-list');
+            const currentVal = document.getElementById('model-input').value;
+            wrap.classList.remove('hidden');
+            document.getElementById('model-list-count').innerText = `共 ${list.length} 个`;
+            listEl.innerHTML = list.map(id => {
+                const active = id === currentVal;
+                return `<span data-model-id="${id}" onclick="pickModel('${id.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-sm text-xs cursor-pointer trait-btn shadow-sm ${active ? 'active-pos' : ''}">${id}</span>`;
+            }).join('');
+        }
+
+        window.pickModel = (id) => {
+            document.getElementById('model-input').value = id;
+            document.querySelectorAll('#model-list [data-model-id]').forEach(el => {
+                el.classList.toggle('active-pos', el.getAttribute('data-model-id') === id);
+            });
+        };
+
         document.getElementById('btn-pull-models').addEventListener('click', async () => {
             const ep = document.getElementById('api-endpoint').value;
             const key = document.getElementById('api-key').value;
             const btn = document.getElementById('btn-pull-models');
-            btn.innerText = "同步中...";
+
+            if (!ep.trim()) { alert("请先填写 API Endpoint！"); return; }
+            if (!key.trim()) { alert("请先填写 API Key！"); return; }
+
+            btn.disabled = true; btn.innerText = "抽取中...";
             try {
-                const url = ep.endsWith('/') ? `${ep}v1/models` : `${ep}/v1/models`;
+                const url = buildApiUrl(ep, 'models');
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${key}` } });
+                if (!res.ok) {
+                    let detail = '';
+                    try { detail = (await res.text()).slice(0, 200); } catch (_) {}
+                    throw new Error(`HTTP ${res.status} ${res.statusText}${detail ? ' - ' + detail : ''}`);
+                }
                 const data = await res.json();
-                const sel = document.getElementById('model-select');
-                sel.innerHTML = '<option value="">-- 选择模型 --</option>';
-                (data.data || []).forEach(m => sel.innerHTML += `<option value="${m.id}">${m.id}</option>`);
-                sel.classList.remove('hidden');
-                document.getElementById('model-input').classList.add('hidden');
-                sel.onchange = (e) => document.getElementById('model-input').value = e.target.value;
-            } catch (e) { alert("同步失败: " + e.message); }
-            btn.innerText = "同步模型库";
+                const rawList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : null);
+                if (!rawList) throw new Error('响应中未找到模型列表 (data 字段)，请确认该地址是否兼容 OpenAI /v1/models 格式');
+                const ids = rawList.map(m => (typeof m === 'string' ? m : (m.id || m.model || m.name))).filter(Boolean);
+                if (ids.length === 0) throw new Error('该节点未返回任何模型，请检查 API Key 权限');
+
+                renderModelList(ids);
+            } catch (e) {
+                let hint = '';
+                if (e instanceof TypeError) {
+                    hint = '\n\n这通常是网络无法访问该地址，或该地址未开放浏览器跨域(CORS)访问导致——部分中转/代理站点默认不允许网页直接调用。可以尝试：\n1. 确认 Endpoint 拼写和协议(https)是否正确；\n2. 换一个支持跨域的中转地址；\n3. 若确认模型名称，可直接在下方手动输入并保存，无需抽取。';
+                } else {
+                    hint = '\n\n若该地址不支持 /v1/models 接口(部分中转站不支持)，可直接在下方手动填写模型名称并保存。';
+                }
+                alert("抽取失败: " + e.message + hint);
+            }
+            btn.disabled = false; btn.innerText = "抽取可用模型";
         });
 
         document.getElementById('btn-to-creator').addEventListener('click', () => {
@@ -659,7 +760,7 @@
             state.saniwa.name = document.getElementById('char-name').value.trim(); state.saniwa.rank = document.getElementById('char-rank').value;
             state.saniwa.origin = document.getElementById('char-origin').value; state.saniwa.manaType = document.getElementById('char-mana-type').value;
             state.saniwa.type = document.getElementById('char-type').value; state.saniwa.path = document.getElementById('char-path').value;
-            state.saniwa.appearance = document.getElementById('char-appearance').value.trim(); state.saniwa.background = document.getElementById('char-background').value.trim();
+            state.saniwa.appearance = (document.getElementById('char-appearance')?.value || '').trim(); state.saniwa.background = document.getElementById('char-background').value.trim();
             if (!state.saniwa.name || !state.saniwa.background) return alert("请填写代号和深层背景！");
             
             const hex = Math.floor(Math.random() * 4095).toString(16).padStart(3, '0');
@@ -696,7 +797,7 @@
         }
         
         function exportSave() {
-            const saveData = { saniwa: state.saniwa, currentEvent: state.currentEvent, chatHistory: state.chatHistory, swordsStats: state.swordsStats, logs: state.logs };
+            const saveData = { saniwa: state.saniwa, currentEvent: state.currentEvent, chatHistory: state.chatHistory, worldChatHistory: state.worldChatHistory, swordsStats: state.swordsStats, logs: state.logs };
             const blob = new Blob([JSON.stringify(saveData)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -713,7 +814,7 @@
                     const data = JSON.parse(e.target.result);
                     if(data.saniwa && data.swordsStats) {
                         state.saniwa = data.saniwa; state.currentEvent = data.currentEvent;
-                        state.chatHistory = data.chatHistory || {}; state.swordsStats = data.swordsStats; state.logs = data.logs;
+                        state.chatHistory = data.chatHistory || {}; state.worldChatHistory = data.worldChatHistory || []; state.swordsStats = data.swordsStats; state.logs = data.logs;
                         document.getElementById('view-api').classList.add('hidden'); document.getElementById('view-creator').classList.add('hidden');
                         document.getElementById('view-game').classList.remove('hidden');
                         closeSettings(); initGameUI(); alert("本丸状态已恢复！");
@@ -730,6 +831,19 @@
             document.getElementById('ui-honmaru-code').innerText = state.saniwa.honmaruCode;
             renderSwordList(); updatePanels();
             document.getElementById('panel-event-desc').innerHTML = `<strong class="text-[var(--text-main)]">${state.currentEvent.name}</strong><br/><span class="opacity-80">${state.currentEvent.desc}</span>`;
+            selectWorld(); // 默认进入大世界主线剧情，无需先选择刀剑
+        }
+
+        function updateWorldEntryUI() {
+            const el = document.getElementById('world-entry');
+            if (!el) return;
+            if (state.currentMode === 'world') {
+                el.classList.add('bg-[var(--bg-panel)]', 'border-[var(--accent-main)]', 'shadow-md');
+                el.classList.remove('bg-[var(--bg-input)]', 'border-transparent');
+            } else {
+                el.classList.remove('bg-[var(--bg-panel)]', 'border-[var(--accent-main)]', 'shadow-md');
+                el.classList.add('bg-[var(--bg-input)]', 'border-transparent');
+            }
         }
 
         function renderSwordList(filter = "") {
@@ -748,8 +862,41 @@
 
         document.getElementById('sword-search').addEventListener('input', (e) => renderSwordList(e.target.value));
 
+        document.getElementById('event-select').addEventListener('change', (e) => {
+            const ev = gameData.events.find(ev => ev.id === e.target.value);
+            if (!ev) return;
+            state.currentEvent = ev;
+            if (state.currentMode === 'world') document.getElementById('partner-desc').innerText = ev.name;
+            updatePanels();
+        });
+
+        function renderOverviewRoster() {
+            const el = document.getElementById('overview-roster');
+            if (!el) return;
+            el.innerHTML = toukenData.map(s => {
+                initSwordStats(s.id);
+                const st = state.swordsStats[s.id];
+                const isKami = st.kamikakushi >= 80, isCorrupt = st.corruption >= 80;
+                const active = state.currentPartner?.id === s.id ? 'border-[var(--accent-main)]' : 'border-[var(--border-line)]';
+                return `<div onclick="selectSword(${s.id})" class="p-2 rounded-sm border ${active} bg-[var(--bg-panel)] cursor-pointer hover:border-[var(--accent-main)] transition-all">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs text-[var(--text-main)] tracking-wide">${s.name}</span>
+                        <span class="text-[9px] font-mono text-[var(--text-muted)]">Lv.${st.lv}${isKami ? ' ⚠神隐危' : ''}${isCorrupt ? ' ⚠暗堕危' : ''}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-1 text-[9px] font-mono text-[var(--text-muted)]">
+                        <span>喜爱<b class="text-[#4a7c59]">${st.affection}</b></span>
+                        <span>爱慕<b class="text-[var(--accent-main)]">${st.love}</b></span>
+                        <span>厌恶<b>${st.dislike}</b></span>
+                        <span>病娇<b class="text-[#8c6b99]">${st.yandere}</b></span>
+                        <span>暗堕<b class="text-[#8b3a3a]">${st.corruption}</b></span>
+                        <span>神隐<b class="text-[#b56b00]">${st.kamikakushi}</b></span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
         window.switchTab = (tab) => {
-            ['saniwa', 'sword', 'log'].forEach(t => {
+            ['overview', 'saniwa', 'sword', 'log'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`tab-btn-${t}`).classList.replace('text-[var(--accent-main)]', 'text-[var(--text-muted)]');
                 document.getElementById(`tab-btn-${t}`).classList.remove('border-b-2');
@@ -760,6 +907,10 @@
         };
 
         function updatePanels() {
+            document.getElementById('event-select').value = state.currentEvent.id;
+            document.getElementById('overview-event-desc').innerText = state.currentEvent.desc;
+            renderOverviewRoster();
+
             document.getElementById('panel-saniwa-name').innerText = state.saniwa.name;
             document.getElementById('panel-saniwa-rank').innerText = state.saniwa.rank.split(' ')[0];
             document.getElementById('panel-saniwa-origin').innerText = state.saniwa.origin.split(' ')[0];
@@ -795,9 +946,28 @@
             if(state.logs.internals.length > 0) logI.innerHTML = state.logs.internals.map(l => `<li><span class="text-[var(--accent-main)]">◆</span> ${l}</li>`).reverse().join('');
         }
 
+        window.selectWorld = () => {
+            state.currentMode = 'world';
+            state.currentPartner = null;
+            renderSwordList(document.getElementById('sword-search').value);
+            updateWorldEntryUI();
+
+            document.getElementById('chat-placeholder').classList.add('hidden');
+            ['chat-header', 'chat-container', 'chat-input-area'].forEach(el => document.getElementById(el).classList.remove('hidden'));
+
+            document.getElementById('partner-name').innerText = '大世界剧情';
+            document.getElementById('partner-desc').innerText = state.currentEvent.name;
+            document.getElementById('partner-avatar').innerText = '🌏';
+
+            switchTab('overview'); updatePanels(); renderChat();
+            if (window.innerWidth < 768) closeAllSidebars();
+        };
+
         window.selectSword = (id) => {
+            state.currentMode = 'sword';
             state.currentPartner = toukenData.find(s => s.id === id);
             renderSwordList(document.getElementById('sword-search').value);
+            updateWorldEntryUI();
             
             document.getElementById('chat-placeholder').classList.add('hidden');
             ['chat-header', 'chat-container', 'chat-input-area'].forEach(el => document.getElementById(el).classList.remove('hidden'));
@@ -806,6 +976,7 @@
             document.getElementById('partner-desc').innerText = state.currentPartner.personality;
             document.getElementById('partner-avatar').innerText = state.currentPartner.name.charAt(0);
             
+            initSwordStats(id);
             if (!state.chatHistory[id]) state.chatHistory[id] = [];
             switchTab('sword'); updatePanels(); renderChat();
             if(window.innerWidth < 768) closeAllSidebars();
@@ -813,12 +984,13 @@
 
         function renderChat() {
             const cont = document.getElementById('chat-container');
-            const history = state.chatHistory[state.currentPartner.id];
-            if (history.length === 0) { cont.innerHTML = ''; return; }
+            const isWorld = state.currentMode === 'world';
+            const history = isWorld ? state.worldChatHistory : (state.currentPartner ? state.chatHistory[state.currentPartner.id] : []);
+            if (!history || history.length === 0) { cont.innerHTML = ''; return; }
 
             cont.innerHTML = history.map(msg => {
                 const isUser = msg.role === 'user';
-                const name = isUser ? state.saniwa.name : state.currentPartner.name;
+                const name = isUser ? state.saniwa.name : (isWorld ? '大世界·叙事者' : state.currentPartner.name);
                 const align = isUser ? 'items-end' : 'items-start';
                 const bubbleClass = isUser ? 'chat-bubble-user' : 'chat-bubble-ai shadow-md';
                 let content = msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold border-b border-current pb-0.5">$1</strong>').replace(/\*(.*?)\*/g, '<em class="opacity-80 italic">$1</em>');
@@ -828,7 +1000,11 @@
         }
 
         document.getElementById('btn-clear-chat').addEventListener('click', () => {
-            if(confirm(`警告：确定要抹除记忆吗？`)) { state.chatHistory[state.currentPartner.id] = []; renderChat(); }
+            if(confirm(`警告：确定要抹除记忆吗？`)) {
+                if (state.currentMode === 'world') state.worldChatHistory = [];
+                else if (state.currentPartner) state.chatHistory[state.currentPartner.id] = [];
+                renderChat();
+            }
         });
 
         document.getElementById('chat-input').addEventListener('keydown', (e) => {
@@ -837,36 +1013,87 @@
 
         document.getElementById('btn-send').addEventListener('click', sendMessage);
 
+        function advanceStory() {
+            const inputEl = document.getElementById('chat-input');
+            if (inputEl.disabled) return; // 正在生成中，避免重复触发
+            const isWorld = state.currentMode === 'world';
+            inputEl.value = isWorld
+                ? '（请你作为大世界的叙事者，自然地继续推进本丸当前的剧情——可以安排下一个日常场景、事件转折，或让某一位刀剑登场互动，不必等待我的具体指令。）'
+                : `（请你继续自然地推进与${state.currentPartner ? state.currentPartner.name : '我'}之间的剧情发展，不必等待我的具体指令。）`;
+            sendMessage();
+        }
+        document.getElementById('btn-advance').addEventListener('click', advanceStory);
+
         async function sendMessage() {
             const inputEl = document.getElementById('chat-input');
             const text = inputEl.value.trim();
-            if (!text || !state.currentPartner) return;
+            const isWorld = state.currentMode === 'world';
+            if (!text || (!isWorld && !state.currentPartner)) return;
 
-            const swordId = state.currentPartner.id;
-            state.chatHistory[swordId].push({ role: 'user', content: text });
+            const historyArr = isWorld ? state.worldChatHistory : state.chatHistory[state.currentPartner.id];
+            historyArr.push({ role: 'user', content: text });
             inputEl.value = ''; renderChat();
 
             const conf = state.apiConfigs.find(c => c.id === state.currentApiId);
-            const sStats = state.swordsStats[swordId];
-            
-            const sysPrompt = `
+
+            let sysPrompt;
+            if (isWorld) {
+                // 大世界模式：GM 视角，掌控全局剧情，可让任意已录入的刀剑登场互动
+                const roster = toukenData.map(s => {
+                    initSwordStats(s.id);
+                    const st = state.swordsStats[s.id];
+                    return `- ${s.name}（${s.type}/${s.school || '无'}派）｜性格：${s.personality}｜当前对审神者：喜爱${st.affection} 爱慕${st.love} 厌恶${st.dislike} 病娇${st.yandere} 暗堕${st.corruption} 神隐${st.kamikakushi}`;
+                }).join('\n');
+                sysPrompt = `
 ${conf.jailbreak}
 ${state.settings.minLengthPrompt}
+【游戏模式：大世界剧情】你是本丸的世界叙事者/游戏主持人(GM)，负责推进主线剧情，描写本丸日常、事件与危机，并可以自由调度、扮演下方名单中的任意刀剑登场对话、行动（依据各自的性格与当前状态），也可以只描写世界观、NPC与环境。剧情走向以大世界为主线，刀剑们作为主线中的角色随时可以自然登场或退场。
+【审神者状态】：代号[${state.saniwa.name}]，代码[${state.saniwa.honmaruCode}]，特质[${state.saniwa.positive.join(',')}, ${state.saniwa.negative.join(',')}]，道德${state.saniwa.morality}，威望${state.saniwa.prestige}，体力${state.saniwa.stamina}。
+【当前事件】：${state.currentEvent.name} - ${state.currentEvent.desc}
+【本丸刀剑名单与状态】：
+${roster}
+【状态更新指令】：本回合剧情中若有刀剑登场并发生态度/好感变化，请在 STAT_UPDATE 的 sword_updates 数组中列出，name 字段必须与上方名单中的名字完全一致；未登场或无变化的刀剑不必列出。格式：
+<STAT_UPDATE>
+{
+  "theme": "normal",
+  "saniwa_stamina_change": 0, "saniwa_morality_change": 0, "saniwa_prestige_change": 0,
+  "sword_updates": [ { "name": "刀剑全名", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
+  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无"
+}
+</STAT_UPDATE>
+                `;
+            } else {
+                const sStats = state.swordsStats[state.currentPartner.id];
+                sysPrompt = `
+${conf.jailbreak}
+${state.settings.minLengthPrompt}
+【游戏模式：单人刀剑剧情】当前为审神者与「${state.currentPartner.name}」的一对一私下剧情，与大世界主线可以互相呼应参考，但本次对话只需专注描写这一位刀剑。
 【当前状态参考】(根据此数据调整角色态度)：
 审神者：代码[${state.saniwa.honmaruCode}]，特质[${state.saniwa.positive.join(',')}, ${state.saniwa.negative.join(',')}]。
 当前刀剑(${state.currentPartner.name})对审神者：喜爱${sStats.affection}，爱慕${sStats.love}，厌恶${sStats.dislike}，病娇${sStats.yandere}，暗堕${sStats.corruption}，神隐进度${sStats.kamikakushi}。
 【剧情设定】：当前事件 ${state.currentEvent.name}。角色设定：${state.currentPartner.personality} | ${state.currentPartner.background} | 扮演核心：${state.currentPartner.prompt_injection}
-            `;
+【状态更新指令】：请在 STAT_UPDATE 的 sword_updates 数组中填写这一位刀剑（name 字段为"${state.currentPartner.name}"）的状态变化。格式：
+<STAT_UPDATE>
+{
+  "theme": "normal",
+  "saniwa_stamina_change": 0, "saniwa_morality_change": 0, "saniwa_prestige_change": 0,
+  "sword_updates": [ { "name": "${state.currentPartner.name}", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
+  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无"
+}
+</STAT_UPDATE>
+                `;
+            }
 
-            const cleanHistory = state.chatHistory[swordId].filter(m => !m.content.startsWith('【系统提示'));
+            const cleanHistory = historyArr.filter(m => !m.content.startsWith('【系统提示'));
             const messages = [{ role: 'system', content: sysPrompt }, ...cleanHistory];
 
             const btn = document.getElementById('btn-send'); const indicator = document.getElementById('loading-indicator');
-            btn.disabled = true; inputEl.disabled = true;
-            indicator.classList.remove('hidden'); document.getElementById('loading-placeholder').classList.add('hidden');
+            const advBtn = document.getElementById('btn-advance');
+            btn.disabled = true; inputEl.disabled = true; advBtn.disabled = true;
+            indicator.classList.remove('hidden');
 
             try {
-                const ep = conf.endpoint.endsWith('/') ? `${conf.endpoint}v1/chat/completions` : `${conf.endpoint}/v1/chat/completions`;
+                const ep = buildApiUrl(conf.endpoint, 'chat/completions');
                 const res = await fetch(ep, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${conf.key}` },
                     body: JSON.stringify({ model: conf.model, messages: messages, temperature: 0.85, max_tokens: state.settings.maxTokens })
@@ -882,9 +1109,28 @@ ${state.settings.minLengthPrompt}
                         const updates = JSON.parse(match[1]);
                         if(updates.theme && ['normal', 'dark', 'night'].includes(updates.theme)) document.body.className = `theme-${updates.theme}`;
                         state.saniwa.stamina += updates.saniwa_stamina_change || 0; state.saniwa.morality += updates.saniwa_morality_change || 0;
-                        sStats.affection += updates.sword_affection_change || 0; sStats.love += updates.sword_love_change || 0;
-                        sStats.dislike += updates.sword_dislike_change || 0; sStats.yandere += updates.sword_yandere_change || 0;
-                        sStats.corruption += updates.sword_corruption_change || 0; sStats.kamikakushi += updates.sword_kamikakushi_change || 0;
+                        state.saniwa.prestige += updates.saniwa_prestige_change || 0;
+
+                        if (Array.isArray(updates.sword_updates) && updates.sword_updates.length > 0) {
+                            // 新格式：可同时更新多把刀剑（大世界模式常见）
+                            updates.sword_updates.forEach(u => {
+                                const id = swordNameToId[u.name] || (state.currentPartner && u.name === state.currentPartner.name ? state.currentPartner.id : null);
+                                if (!id) return;
+                                initSwordStats(id);
+                                const st = state.swordsStats[id];
+                                st.affection += u.affection_change || 0; st.love += u.love_change || 0;
+                                st.dislike += u.dislike_change || 0; st.yandere += u.yandere_change || 0;
+                                st.corruption += u.corruption_change || 0; st.kamikakushi += u.kamikakushi_change || 0;
+                                st.lv = Math.min(99, st.lv + 1);
+                            });
+                        } else if (!isWorld) {
+                            // 兼容旧格式：单人刀剑模式下的扁平字段
+                            const sStats = state.swordsStats[state.currentPartner.id];
+                            sStats.affection += updates.sword_affection_change || 0; sStats.love += updates.sword_love_change || 0;
+                            sStats.dislike += updates.sword_dislike_change || 0; sStats.yandere += updates.sword_yandere_change || 0;
+                            sStats.corruption += updates.sword_corruption_change || 0; sStats.kamikakushi += updates.sword_kamikakushi_change || 0;
+                            sStats.lv = Math.min(99, sStats.lv + 1);
+                        }
                         
                         if (updates.smithing_result && updates.smithing_result !== "无") { state.logs.smithCount++; state.logs.smithing.push(updates.smithing_result); }
                         if (updates.internal_affairs && updates.internal_affairs !== "无") state.logs.internals.push(updates.internal_affairs);
@@ -894,15 +1140,15 @@ ${state.settings.minLengthPrompt}
                                 const idx = state.saniwa.inventory.indexOf(item); if(idx > -1) state.saniwa.inventory.splice(idx, 1);
                             } else state.saniwa.inventory.push(updates.item_acquired.replace("获得", "").trim());
                         }
-                        sStats.lv = Math.min(99, sStats.lv + 1); updatePanels();
+                        updatePanels(); renderSwordList(document.getElementById('sword-search').value);
                     } catch (e) { console.error("JSON parse error:", e); }
                     aiText = aiText.replace(regex, '').trim();
                 }
-                state.chatHistory[swordId].push({ role: 'assistant', content: aiText });
-            } catch (e) { state.chatHistory[swordId].push({ role: 'assistant', content: `【系统提示：干涉失败。请检查API或网络。${e.message}】` }); }
+                historyArr.push({ role: 'assistant', content: aiText });
+            } catch (e) { historyArr.push({ role: 'assistant', content: `【系统提示：干涉失败。请检查API或网络。${e.message}】` }); }
 
-            renderChat(); btn.disabled = false; inputEl.disabled = false; inputEl.focus();
-            indicator.classList.add('hidden'); document.getElementById('loading-placeholder').classList.remove('hidden');
+            renderChat(); btn.disabled = false; inputEl.disabled = false; advBtn.disabled = false; inputEl.focus();
+            indicator.classList.add('hidden');
         }
         initApiView();
     </script>
