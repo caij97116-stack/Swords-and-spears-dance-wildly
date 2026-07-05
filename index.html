@@ -69,7 +69,7 @@
         .sidebar-right-mobile { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar-right-mobile.open { transform: translateX(0); }
         
-        .overlay { background: rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 40; backdrop-filter: blur(2px); }
+        .overlay { background: rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 40; }
         .overlay.active { opacity: 1; pointer-events: auto; }
         @media (min-width: 768px) { .overlay { display: none !important; } }
 
@@ -87,6 +87,21 @@
         /* 聊天气泡样式 */
         .chat-bubble-user { background: var(--accent-main); color: #fff; border-bottom-right-radius: 4px; }
         .chat-bubble-ai { background: var(--bg-panel); border: 1px solid var(--border-line); color: var(--text-main); border-bottom-left-radius: 4px; }
+
+        /* 剧情叙事文字：不再被方框束缚，自然流动排版 */
+        .chat-narration { background: transparent; border: none; box-shadow: none; padding: 0.25rem 0.5rem; color: var(--text-main); }
+
+        /* 角色台词：以气泡形式凸显，与叙事文字区分开 */
+        .dialogue-bubble {
+            display: inline; background: var(--bg-panel); color: var(--accent-main);
+            border: 1px solid var(--border-line); border-radius: 10px; padding: 0.1em 0.5em;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-weight: 600;
+            -webkit-box-decoration-break: clone; box-decoration-break: clone;
+        }
+        .dialogue-thought {
+            color: var(--text-muted); font-style: italic; font-weight: 500; border-style: dashed;
+        }
+        .chat-bubble-user .dialogue-bubble { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.35); }
     </style>
 </head>
 <body class="theme-normal text-sm md:text-base">
@@ -189,6 +204,10 @@
                 <div>
                     <label class="block text-xs md:text-sm text-[var(--text-muted)] mb-2 tracking-widest">深层背景设定 (核心剧情依据)</label>
                     <textarea id="char-background" class="w-full p-4 rounded-sm h-24 md:h-32 leading-relaxed text-xs md:text-sm resize-none" placeholder="详细描述你的过去。为何被时政选中？你对刀剑的真实态度？是否携带现世的牵绊？..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs md:text-sm text-[var(--text-muted)] mb-2 tracking-widest">选择你的初期刀 (本丸最初拥有的伙伴，此后可通过锻刀/远征获得更多)</label>
+                    <select id="char-starter-sword" class="w-full p-3 rounded-sm"></select>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6 rounded-sm border border-[var(--border-line)] bg-[var(--bg-input)]">
                     <div>
@@ -348,6 +367,8 @@
                         <div class="grid grid-cols-2 gap-2 text-[10px] md:text-xs font-mono">
                             <div class="bg-[var(--bg-input)] p-1.5 rounded-sm border border-[var(--border-line)] flex justify-between"><span class="text-[var(--text-muted)]">木炭</span><span id="res-charcoal" class="text-[var(--text-main)]">999</span></div>
                             <div class="bg-[var(--bg-input)] p-1.5 rounded-sm border border-[var(--border-line)] flex justify-between"><span class="text-[var(--text-muted)]">玉钢</span><span id="res-steel" class="text-[var(--text-main)]">999</span></div>
+                            <div class="bg-[var(--bg-input)] p-1.5 rounded-sm border border-[var(--border-line)] flex justify-between"><span class="text-[var(--text-muted)]">冷却剂</span><span id="res-coolant" class="text-[var(--text-main)]">999</span></div>
+                            <div class="bg-[var(--bg-input)] p-1.5 rounded-sm border border-[var(--border-line)] flex justify-between"><span class="text-[var(--text-muted)]">砥石</span><span id="res-whetstone" class="text-[var(--text-main)]">999</span></div>
                             <div class="bg-[var(--bg-input)] p-1.5 rounded-sm border border-[var(--border-line)] flex justify-between col-span-2"><span class="text-[var(--text-muted)]">小判</span><span id="res-koban" class="text-[#b58b00] font-bold">50000</span></div>
                         </div>
                     </div>
@@ -458,12 +479,13 @@
 
                 <div class="pt-4 border-t border-[var(--border-line)]">
                     <h4 class="text-sm font-bold text-[var(--accent-main)] mb-3">存档管理 (防进度丢失)</h4>
-                    <p class="text-[10px] text-[var(--text-muted)] mb-3 leading-relaxed">导出存档为JSON文件，或从文件中恢复本丸状态。存档仅包含游戏进度，不包含API密钥信息，可放心保存或分享。</p>
-                    <div class="flex gap-3">
+                    <p class="text-[10px] text-[var(--text-muted)] mb-3 leading-relaxed">游戏进度会自动保存在本浏览器中，刷新或关闭页面后再打开会自动恢复，无需手动操作。你也可以额外导出存档为JSON文件备份或转移到其他设备，存档仅包含游戏进度，不含API密钥。</p>
+                    <div class="flex gap-3 mb-3">
                         <button onclick="exportSave()" class="flex-1 border border-[var(--accent-main)] text-[var(--accent-main)] py-2.5 rounded-sm text-sm font-bold hover:bg-[var(--accent-main)] hover:text-white transition-colors">📥 导出存档</button>
                         <button onclick="document.getElementById('import-file').click()" class="flex-1 bg-[var(--text-main)] text-[var(--bg-base)] py-2.5 rounded-sm text-sm font-bold hover:opacity-80 transition-opacity">📤 导入存档</button>
                         <input type="file" id="import-file" class="hidden" accept=".json" onchange="importSave(event)">
                     </div>
+                    <button onclick="resetGameSave()" class="w-full border border-[#8b3a3a] text-[#8b3a3a] py-2 rounded-sm text-xs font-bold hover:bg-[#8b3a3a] hover:text-white transition-colors">🗑️ 清除本地存档并重新开始新的传说</button>
                 </div>
                 
                 <div class="pt-6">
@@ -724,7 +746,8 @@
             settings: JSON.parse(localStorage.getItem('tk_settings_v7')) || { maxTokens: 2500, minLengthPrompt: "请进行极其细致的长篇描写，字数不少于800字。" },
             saniwa: { 
                 name: '', rank: '', origin: '', manaType: '', type: '', path: '', honmaruCode: '', appearance: '', background: '', positive: [], negative: [],
-                stamina: 100, morality: 50, prestige: 10, resources: { charcoal: 999, steel: 999, coolant: 999, whetstone: 999, koban: 50000 }, inventory: [...gameData.defaultItems]
+                stamina: 100, morality: 50, prestige: 10, resources: { charcoal: 999, steel: 999, coolant: 999, whetstone: 999, koban: 50000 }, inventory: [...gameData.defaultItems],
+                ownedSwords: []
             },
             currentEvent: gameData.events[0],
             currentPartner: null, currentMode: 'world', chatHistory: {}, worldChatHistory: [], swordsStats: {}, logs: { smithCount: 0, smithing: [], internals: [] }
@@ -743,12 +766,18 @@
         // UI & 侧边栏控制 (响应式适配)
         // ==========================================
         function toggleLeftSidebar() {
-            document.getElementById('sidebar-left-outer').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('active');
+            const el = document.getElementById('sidebar-left-outer');
+            if (el.classList.contains('open')) { closeAllSidebars(); return; }
+            document.getElementById('sidebar-right-outer').classList.remove('open');
+            el.classList.add('open');
+            document.getElementById('overlay').classList.add('active');
         }
         function toggleRightSidebar() {
-            document.getElementById('sidebar-right-outer').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('active');
+            const el = document.getElementById('sidebar-right-outer');
+            if (el.classList.contains('open')) { closeAllSidebars(); return; }
+            document.getElementById('sidebar-left-outer').classList.remove('open');
+            el.classList.add('open');
+            document.getElementById('overlay').classList.add('active');
         }
         function closeAllSidebars() {
             document.getElementById('sidebar-left-outer').classList.remove('open');
@@ -792,6 +821,12 @@
             };
             fillSelect('char-rank', gameData.ranks); fillSelect('char-origin', gameData.origins);
             fillSelect('char-mana-type', gameData.manaTypes); fillSelect('char-type', gameData.types);
+            (function fillStarterSword() {
+                const el = document.getElementById('char-starter-sword');
+                const sorted = [...toukenData].sort((a, b) => a.name.localeCompare(b.name, 'zh'));
+                sorted.forEach(s => { el.innerHTML += `<option value="${s.id}">${s.name}（${s.type}/${s.school}）</option>`; });
+                el.value = '3'; // 默认三日月宗近
+            })();
             fillSelect('char-path', gameData.paths);
             fillSelect('event-select', gameData.events);
 
@@ -928,10 +963,14 @@
             if(state.saniwa.path === 'inherited') { state.saniwa.morality = 30; state.saniwa.prestige = -20; }
             if(state.saniwa.path === 'corrupted') { state.saniwa.morality = 20; state.saniwa.prestige = -50; }
             if(state.saniwa.path === 'abandoned') { state.saniwa.morality = 40; state.saniwa.prestige = -80; }
-            
+
+            const starterId = parseInt(document.getElementById('char-starter-sword').value, 10);
+            state.saniwa.ownedSwords = [starterId];
+
             toukenData.forEach(s => initSwordStats(s.id));
             document.getElementById('view-creator').classList.add('hidden'); document.getElementById('view-game').classList.remove('hidden');
             initGameUI();
+            autoSaveGame();
         });
 
         // ==========================================
@@ -973,13 +1012,62 @@
                     if(data.saniwa && data.swordsStats) {
                         state.saniwa = data.saniwa; state.currentEvent = data.currentEvent;
                         state.chatHistory = data.chatHistory || {}; state.worldChatHistory = data.worldChatHistory || []; state.swordsStats = data.swordsStats; state.logs = data.logs;
+                        if (!state.saniwa.ownedSwords) state.saniwa.ownedSwords = toukenData.map(s => s.id); // 兼容旧版无ownedSwords字段的存档
                         document.getElementById('view-api').classList.add('hidden'); document.getElementById('view-creator').classList.add('hidden');
                         document.getElementById('view-game').classList.remove('hidden');
-                        closeSettings(); initGameUI(); alert("本丸状态已恢复！");
+                        closeSettings(); initGameUI(); autoSaveGame(); alert("本丸状态已恢复！");
                     } else { alert("存档格式无效！"); }
                 } catch (err) { alert("读取存档失败！"); }
             };
             reader.readAsText(file);
+        }
+
+        // ==========================================
+        // 本地自动存档 (刷新/关闭页面后自动恢复进度)
+        // ==========================================
+        const AUTO_SAVE_KEY = 'tk_game_save_v1';
+
+        function autoSaveGame() {
+            if (!state.saniwa || !state.saniwa.honmaruCode) return; // 游戏尚未开始，无需保存
+            try {
+                const saveData = {
+                    saniwa: state.saniwa, currentEvent: state.currentEvent,
+                    chatHistory: state.chatHistory, worldChatHistory: state.worldChatHistory,
+                    swordsStats: state.swordsStats, logs: state.logs,
+                    currentMode: state.currentMode, currentPartnerId: state.currentPartner ? state.currentPartner.id : null
+                };
+                localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(saveData));
+            } catch (e) { console.warn('自动存档失败(可能是存储空间已满):', e); }
+        }
+
+        function autoLoadGame() {
+            try {
+                const raw = localStorage.getItem(AUTO_SAVE_KEY);
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                if (!data.saniwa || !data.swordsStats) return false;
+
+                state.saniwa = data.saniwa; state.currentEvent = data.currentEvent;
+                state.chatHistory = data.chatHistory || {}; state.worldChatHistory = data.worldChatHistory || [];
+                state.swordsStats = data.swordsStats; state.logs = data.logs || { smithCount: 0, smithing: [], internals: [] };
+                if (!state.saniwa.ownedSwords) state.saniwa.ownedSwords = toukenData.map(s => s.id); // 兼容旧版无ownedSwords字段的存档
+
+                document.getElementById('view-api').classList.add('hidden');
+                document.getElementById('view-creator').classList.add('hidden');
+                document.getElementById('view-game').classList.remove('hidden');
+                initGameUI();
+                if (data.currentMode === 'sword' && data.currentPartnerId && state.saniwa.ownedSwords.includes(data.currentPartnerId)) {
+                    selectSword(data.currentPartnerId);
+                }
+                return true;
+            } catch (e) { console.warn('自动读档失败:', e); return false; }
+        }
+
+        function resetGameSave() {
+            if (!confirm("确定要清除本地存档、开启全新的传说吗？此操作不可撤销！（可先点「导出存档」备份）")) return;
+            window.removeEventListener('beforeunload', autoSaveGame); // 避免reload触发的beforeunload把刚清除的存档又存回去
+            localStorage.removeItem(AUTO_SAVE_KEY);
+            location.reload();
         }
 
         // ==========================================
@@ -1006,7 +1094,17 @@
 
         function renderSwordList(filter = "") {
             const list = document.getElementById('sword-list');
-            list.innerHTML = toukenData.filter(s => s.name.includes(filter) || (s.school && s.school.includes(filter))).map(s => {
+            const owned = toukenData.filter(s => (state.saniwa.ownedSwords || []).includes(s.id));
+            const filtered = owned.filter(s => s.name.includes(filter) || (s.school && s.school.includes(filter)));
+            if (owned.length === 0) {
+                list.innerHTML = `<div class="text-center text-[10px] md:text-xs text-[var(--text-muted)] p-6 leading-relaxed">本丸尚无藏刀。<br/>前往「大世界剧情」尝试锻刀或触发事件，即可获得新的伙伴。</div>`;
+                return;
+            }
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="text-center text-[10px] md:text-xs text-[var(--text-muted)] p-6">未找到匹配的已获得刀剑...</div>`;
+                return;
+            }
+            list.innerHTML = filtered.map(s => {
                 const stat = state.swordsStats[s.id];
                 const isKami = stat && stat.kamikakushi >= 80; const isCorrupt = stat && stat.corruption >= 80;
                 let borderClass = state.currentPartner?.id === s.id ? 'bg-[var(--bg-panel)] border-[var(--accent-main)] shadow-md' : 'bg-[var(--bg-input)] border-transparent hover:bg-[var(--bg-panel)]';
@@ -1031,7 +1129,12 @@
         function renderOverviewRoster() {
             const el = document.getElementById('overview-roster');
             if (!el) return;
-            el.innerHTML = toukenData.map(s => {
+            const owned = toukenData.filter(s => (state.saniwa.ownedSwords || []).includes(s.id));
+            if (owned.length === 0) {
+                el.innerHTML = `<div class="text-center text-[10px] md:text-xs text-[var(--text-muted)] p-4 col-span-2">本丸尚无藏刀，快去大世界剧情里锻造第一把伙伴吧。</div>`;
+                return;
+            }
+            el.innerHTML = owned.map(s => {
                 initSwordStats(s.id);
                 const st = state.swordsStats[s.id];
                 const isKami = st.kamikakushi >= 80, isCorrupt = st.corruption >= 80;
@@ -1102,6 +1205,7 @@
             if(state.logs.smithing.length > 0) logS.innerHTML = state.logs.smithing.map(l => `<li><span class="text-[var(--accent-main)]">◆</span> ${l}</li>`).reverse().join('');
             const logI = document.getElementById('log-internal-list');
             if(state.logs.internals.length > 0) logI.innerHTML = state.logs.internals.map(l => `<li><span class="text-[var(--accent-main)]">◆</span> ${l}</li>`).reverse().join('');
+            autoSaveGame();
         }
 
         window.selectWorld = () => {
@@ -1145,14 +1249,23 @@
             const isWorld = state.currentMode === 'world';
             const history = isWorld ? state.worldChatHistory : (state.currentPartner ? state.chatHistory[state.currentPartner.id] : []);
             if (!history || history.length === 0) { cont.innerHTML = ''; return; }
+            const visibleHistory = history.filter(msg => !msg.silent); // 「推进剧情」的静默指令不显示，只有AI的正文才展示，保持沉浸感
+            if (visibleHistory.length === 0) { cont.innerHTML = ''; return; }
 
-            cont.innerHTML = history.map(msg => {
+            cont.innerHTML = visibleHistory.map(msg => {
                 const isUser = msg.role === 'user';
                 const name = isUser ? state.saniwa.name : (isWorld ? '大世界·叙事者' : state.currentPartner.name);
                 const align = isUser ? 'items-end' : 'items-start';
-                const bubbleClass = isUser ? 'chat-bubble-user' : 'chat-bubble-ai shadow-md';
-                let content = msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold border-b border-current pb-0.5">$1</strong>').replace(/\*(.*?)\*/g, '<em class="opacity-80 italic">$1</em>');
-                return `<div class="flex flex-col ${align} mb-4 md:mb-6"><span class="text-[10px] md:text-xs text-[var(--text-muted)] mb-1 md:mb-2 px-2 tracking-widest">${name}</span><div class="max-w-[90%] md:max-w-[80%] p-4 md:p-5 rounded-sm whitespace-pre-wrap leading-loose text-xs md:text-sm ${bubbleClass}">${content}</div></div>`;
+                const bubbleClass = isUser ? 'chat-bubble-user' : 'chat-narration';
+                let content = msg.content
+                    .replace(/「([^」]*)」/g, '<span class=\'dialogue-bubble\'>「$1」</span>')
+                    .replace(/『([^』]*)』/g, '<span class=\'dialogue-bubble dialogue-thought\'>『$1』</span>')
+                    .replace(/“([^”]*)”/g, '<span class=\'dialogue-bubble\'>“$1”</span>')
+                    .replace(/"([^"]*)"/g, '<span class=\'dialogue-bubble\'>"$1"</span>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class=\'font-bold border-b border-current pb-0.5\'>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em class=\'opacity-80 italic\'>$1</em>');
+                const maxWidthClass = isUser ? 'max-w-[90%] md:max-w-[80%]' : 'max-w-full';
+                return `<div class="flex flex-col ${align} mb-4 md:mb-6"><span class="text-[10px] md:text-xs text-[var(--text-muted)] mb-1 md:mb-2 px-2 tracking-widest">${name}</span><div class="${maxWidthClass} p-4 md:p-5 rounded-sm whitespace-pre-wrap leading-loose text-xs md:text-sm ${bubbleClass}">${content}</div></div>`;
             }).join('');
             cont.scrollTop = cont.scrollHeight;
         }
@@ -1162,6 +1275,7 @@
                 if (state.currentMode === 'world') state.worldChatHistory = [];
                 else if (state.currentPartner) state.chatHistory[state.currentPartner.id] = [];
                 renderChat();
+                autoSaveGame();
             }
         });
 
@@ -1175,48 +1289,67 @@
             const inputEl = document.getElementById('chat-input');
             if (inputEl.disabled) return; // 正在生成中，避免重复触发
             const isWorld = state.currentMode === 'world';
-            inputEl.value = isWorld
+            const text = isWorld
                 ? '（请你作为大世界的叙事者，自然地继续推进本丸当前的剧情——可以安排下一个日常场景、事件转折，或让某一位刀剑登场互动，不必等待我的具体指令。）'
                 : `（请你继续自然地推进与${state.currentPartner ? state.currentPartner.name : '我'}之间的剧情发展，不必等待我的具体指令。）`;
-            sendMessage();
+            sendMessage(text);
         }
         document.getElementById('btn-advance').addEventListener('click', advanceStory);
 
-        async function sendMessage() {
+        const NATURAL_WRITING_GUIDANCE = `
+【写作质感要求】：
+- 把下方提供的性格/背景/关系数值当作"内在参考"，而不是要在文中反复念出来的标签。禁止出现"他的病娇属性让他..."、"根据他体贴的性格，他..."这类直接点名设定词的写法；应该通过具体的动作、语气、眼神、沉默或选择去自然流露性格，让读者自己感受到，而不是被告知。
+- 同一句话/同一段落里不要反复强调同一个特质或同一个心理动机，避免通篇围着一个词（比如反复出现"温柔""忠诚""不安"）打转；一个人物在不同场景下的反应应当有变化、有层次，偶尔也可以表现出与"设定"略有反差的瞬间，这才像活人。
+- 避免像读设定集一样罗列信息（"作为XX派的名刀，他一直以XX著称"），对话与叙述要像真实小说/剧本一样自然，允许留白、允许词不达意、允许被打断，不必每句话都信息量满满。
+- 台词要有个人说话习惯而非千人一面的书面语，可以有语气词、停顿、口癖，但不要用力过猛地重复同一个口癖。
+- 格式上：凡是角色开口说出的台词，请务必用「」将其准确包裹（例如：他侧过头，「今天风有点大。」）；心理活动/内心独白可以用『』包裹；其余的动作、场景、心理描写等叙事文字不需要任何引号，直接自然书写即可。这不是排版癖好，而是关系到台词能否被正确识别显示，请严格遵守。
+        `;
+
+        async function sendMessage(overrideText) {
             const inputEl = document.getElementById('chat-input');
-            const text = inputEl.value.trim();
+            const isSilentTrigger = typeof overrideText === 'string';
+            const text = (isSilentTrigger ? overrideText : inputEl.value).trim();
             const isWorld = state.currentMode === 'world';
             if (!text || (!isWorld && !state.currentPartner)) return;
 
             const historyArr = isWorld ? state.worldChatHistory : state.chatHistory[state.currentPartner.id];
-            historyArr.push({ role: 'user', content: text });
-            inputEl.value = ''; renderChat();
+            historyArr.push({ role: 'user', content: text, silent: isSilentTrigger });
+            if (!isSilentTrigger) inputEl.value = '';
+            renderChat();
 
             const conf = state.apiConfigs.find(c => c.id === state.currentApiId);
 
             let sysPrompt;
             if (isWorld) {
                 // 大世界模式：GM 视角，掌控全局剧情，可让任意已录入的刀剑登场互动
-                const roster = toukenData.map(s => {
+                const ownedList = toukenData.filter(s => (state.saniwa.ownedSwords || []).includes(s.id));
+                const unownedList = toukenData.filter(s => !(state.saniwa.ownedSwords || []).includes(s.id));
+                const roster = ownedList.map(s => {
                     initSwordStats(s.id);
                     const st = state.swordsStats[s.id];
                     return `- ${s.name}（${s.type}/${s.school || '无'}派）｜性格：${s.personality}｜当前对审神者：喜爱${st.affection} 爱慕${st.love} 厌恶${st.dislike} 病娇${st.yandere} 暗堕${st.corruption} 神隐${st.kamikakushi}`;
                 }).join('\n');
+                const candidateNames = unownedList.map(s => s.name).join('、');
                 sysPrompt = `
 ${conf.jailbreak}
 ${state.settings.minLengthPrompt}
+${NATURAL_WRITING_GUIDANCE}
 【游戏模式：大世界剧情】你是本丸的世界叙事者/游戏主持人(GM)，负责推进主线剧情，描写本丸日常、事件与危机，并可以自由调度、扮演下方名单中的任意刀剑登场对话、行动（依据各自的性格与当前状态），也可以只描写世界观、NPC与环境。剧情走向以大世界为主线，刀剑们作为主线中的角色随时可以自然登场或退场。
+【重要限制】：审神者目前只拥有下方"本丸刀剑名单"中列出的刀剑，未列出的刀剑尚未被审神者获得/锻造出来，本回合的剧情登场、对话、互动只能出现名单内的刀剑，不能让未拥有的刀剑登场对话（除非剧情是"锻刀/远征获得新刀"的情节，见下方说明）。
 【审神者状态】：代号[${state.saniwa.name}]，代码[${state.saniwa.honmaruCode}]，特质[${state.saniwa.positive.join(',')}, ${state.saniwa.negative.join(',')}]，道德${state.saniwa.morality}，威望${state.saniwa.prestige}，体力${state.saniwa.stamina}。
 【当前事件】：${state.currentEvent.name} - ${state.currentEvent.desc}
-【本丸刀剑名单与状态】：
-${roster}
-【状态更新指令】：本回合剧情中若有刀剑登场并发生态度/好感变化，请在 STAT_UPDATE 的 sword_updates 数组中列出，name 字段必须与上方名单中的名字完全一致；未登场或无变化的刀剑不必列出。格式：
+【本丸刀剑名单与状态】（审神者已拥有）：
+${roster || '（尚无已拥有的刀剑）'}
+【尚未拥有、可通过锻刀/远征/特殊事件获得的候选名单】：
+${candidateNames || '（暂无更多候选）'}
+【状态更新指令】：本回合剧情中若有已拥有的刀剑登场并发生态度/好感变化，请在 STAT_UPDATE 的 sword_updates 数组中列出，name 字段必须与"本丸刀剑名单"中的名字完全一致；未登场或无变化的刀剑不必列出。
+【获得新刀说明】：只有当剧情明确描写了审神者通过锻刀、远征或特殊事件"新获得了一把刀剑"时，才在 new_sword_acquired 字段填写该刀剑的准确名字（必须完全匹配"候选名单"中的名字，禁止虚构不存在的名字）；否则填"无"。不要无缘无故让新刀剑出现，获得新刀应当是有铺垫、有仪式感的剧情节点。格式：
 <STAT_UPDATE>
 {
   "theme": "normal",
   "saniwa_stamina_change": 0, "saniwa_morality_change": 0, "saniwa_prestige_change": 0,
   "sword_updates": [ { "name": "刀剑全名", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
-  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无"
+  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无", "new_sword_acquired": "无"
 }
 </STAT_UPDATE>
                 `;
@@ -1225,6 +1358,7 @@ ${roster}
                 sysPrompt = `
 ${conf.jailbreak}
 ${state.settings.minLengthPrompt}
+${NATURAL_WRITING_GUIDANCE}
 【游戏模式：单人刀剑剧情】当前为审神者与「${state.currentPartner.name}」的一对一私下剧情，与大世界主线可以互相呼应参考，但本次对话只需专注描写这一位刀剑。
 【当前状态参考】(根据此数据调整角色态度)：
 审神者：代码[${state.saniwa.honmaruCode}]，特质[${state.saniwa.positive.join(',')}, ${state.saniwa.negative.join(',')}]。
@@ -1298,6 +1432,14 @@ ${state.settings.minLengthPrompt}
                                 const idx = state.saniwa.inventory.indexOf(item); if(idx > -1) state.saniwa.inventory.splice(idx, 1);
                             } else state.saniwa.inventory.push(updates.item_acquired.replace("获得", "").trim());
                         }
+                        if (updates.new_sword_acquired && updates.new_sword_acquired !== "无") {
+                            const newId = swordNameToId[updates.new_sword_acquired.trim()];
+                            if (newId && !state.saniwa.ownedSwords.includes(newId)) {
+                                state.saniwa.ownedSwords.push(newId);
+                                initSwordStats(newId);
+                                state.logs.smithing.push(`新的伙伴加入了本丸：${updates.new_sword_acquired.trim()}`);
+                            }
+                        }
                         updatePanels(); renderSwordList(document.getElementById('sword-search').value);
                     } catch (e) { console.error("JSON parse error:", e); }
                     aiText = aiText.replace(regex, '').trim();
@@ -1307,8 +1449,12 @@ ${state.settings.minLengthPrompt}
 
             renderChat(); btn.disabled = false; inputEl.disabled = false; advBtn.disabled = false; inputEl.focus();
             indicator.classList.add('hidden');
+            autoSaveGame();
         }
+
         initApiView();
+        autoLoadGame();
+        window.addEventListener('beforeunload', autoSaveGame);
     </script>
 </body>
 </html>
