@@ -106,7 +106,6 @@
 </head>
 <body class="theme-normal text-sm md:text-base">
     <div class="washi-texture"></div>
-    <div id="overlay" class="overlay absolute inset-0" onclick="closeAllSidebars()"></div>
 
     <div id="app" class="h-full w-full flex flex-col relative z-10">
         
@@ -228,7 +227,8 @@
 
         <!-- 3. 游戏主界面 -->
         <div id="view-game" class="hidden flex-1 flex flex-col md:flex-row overflow-hidden relative">
-            
+            <div id="overlay" class="overlay absolute inset-0" onclick="closeAllSidebars()"></div>
+
             <!-- 移动端顶部导航栏 -->
             <div class="md:hidden flex justify-between items-center p-3 glass-panel z-30 border-b border-[var(--border-line)]">
                 <button onclick="toggleLeftSidebar()" class="text-[var(--text-main)] p-2 font-bold tracking-widest">⛩️ 刀帐</button>
@@ -314,11 +314,12 @@
                     <h3 class="text-lg font-bold text-[var(--text-main)] tracking-widest">状态面板</h3>
                     <button class="text-[var(--text-muted)] text-xl" onclick="toggleRightSidebar()">×</button>
                 </div>
-                <div class="flex border-b border-[var(--border-line)] text-xs md:text-sm">
-                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--accent-main)] border-b-2 border-[var(--accent-main)] transition-colors tracking-widest" id="tab-btn-overview" onclick="switchTab('overview')">总览</button>
-                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest" id="tab-btn-saniwa" onclick="switchTab('saniwa')">档案</button>
-                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest" id="tab-btn-sword" onclick="switchTab('sword')">观测</button>
-                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest" id="tab-btn-log" onclick="switchTab('log')">日志</button>
+                <div class="flex border-b border-[var(--border-line)] text-xs md:text-sm overflow-x-auto">
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--accent-main)] border-b-2 border-[var(--accent-main)] transition-colors tracking-widest whitespace-nowrap" id="tab-btn-overview" onclick="switchTab('overview')">总览</button>
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest whitespace-nowrap" id="tab-btn-saniwa" onclick="switchTab('saniwa')">档案</button>
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest whitespace-nowrap" id="tab-btn-sword" onclick="switchTab('sword')">观测</button>
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest whitespace-nowrap" id="tab-btn-npc" onclick="switchTab('npc')">人物</button>
+                    <button class="flex-1 py-3 md:py-4 text-center font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors tracking-widest whitespace-nowrap" id="tab-btn-log" onclick="switchTab('log')">日志</button>
                 </div>
 
                 <!-- Tab: 大世界总览 (新增功能面板) -->
@@ -336,6 +337,14 @@
                         </div>
                         <div id="overview-roster" class="space-y-2 mt-2"></div>
                     </div>
+                </div>
+
+                <!-- Tab: 人物 (剧情中遇到的其他角色，如他丸审神者等，与刀帐分开) -->
+                <div id="tab-npc" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 hidden">
+                    <div class="text-[10px] md:text-xs text-[var(--text-muted)] leading-relaxed border border-[var(--border-line)] rounded-sm bg-[var(--bg-input)] p-3">
+                        剧情中遇到的其他人物（如他丸审神者、历史人物、特殊NPC等）会自动记录在这里，与本丸的刀剑刀帐分开管理，方便你单独查看这些关系的进展。
+                    </div>
+                    <div id="npc-roster" class="space-y-2"></div>
                 </div>
 
                 <!-- Tab: 审神者 -->
@@ -510,14 +519,15 @@
 `;
 
         const jsonProtocol = `
-【系统强制指令】：在每次回复的**最末尾**，必须输出JSON更新面板状态。必须用 \`<STAT_UPDATE>\` 和 \`</STAT_UPDATE>\` 包裹。格式严格如下：
+【系统强制指令】：在每次回复的**最末尾**，必须输出JSON更新面板状态。必须用 \`<STAT_UPDATE>\` 和 \`</STAT_UPDATE>\` 包裹。格式严格如下（实际运行时会根据当前模式自动附加更详细的字段说明，此处仅为示例）：
 <STAT_UPDATE>
 {
   "theme": "normal", // 界面主题: normal(日常), dark(暗堕/高虐), night(夜晚/压抑)
   "saniwa_stamina_change": 0, "saniwa_morality_change": 0, "saniwa_prestige_change": 0,
-  "sword_affection_change": 0, "sword_love_change": 0, "sword_dislike_change": 0, 
-  "sword_yandere_change": 0, "sword_corruption_change": 0, "sword_kamikakushi_change": 0,
-  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无"
+  "sword_updates": [ { "name": "刀剑全名", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
+  "resource_changes": { "charcoal": 0, "steel": 0, "coolant": 0, "whetstone": 0, "koban": 0 },
+  "items_gained": [], "items_lost": [],
+  "smithing_result": "无", "internal_affairs": "无"
 }
 </STAT_UPDATE>`;
 
@@ -555,7 +565,7 @@
         // 扩充的刀剑数据库 (涵盖各流派代表与深渊设定)
         const toukenData = [
             // 三条派
-            { id: 3, name: "三日月宗近", type: "太刀", school: "三条", appearance: "深蓝狩衣，新月纹样，瞳孔中有新月倒影，容貌极美。", personality: "乐天派“爷爷”，实则洞察一切，有神明威严。", background: "天下五剑之一。传闻曾见证无数名门覆灭。在暗堕本丸中，会微笑着将渣审斩首。极化后神性更强。", prompt_injection: "语气缓慢温和。极难动心，一旦动心会展现神明的绝对独占欲。若神隐进度高，会用最温柔的语气打造最坚固的牢笼。" },
+            { id: 3, name: "三日月宗近", type: "太刀", school: "三条", appearance: "深蓝狩衣，新月纹样，瞳孔中有新月倒影，容貌极美。", personality: "官方评价其“宽宏大度”，实则是究极的自我主义者：从不称审神者为“主人”，始终以平等甚至更高的姿态与人对话，仿佛是站在神明而非人类的角度看待一切；自称“老爷爷”（诞生于11世纪，年岁确实古老），标志性的“哈哈哈”笑声与“近う寄れ（近前来）”这类古时尊者对下位者的用语，都透着一股淡然的威严感。同时又有反差萌的一面：外表优雅却其实笨手笨脚，喜欢被人照顾，不擅穿衣打扮，甚至会在本丸里迷路找不到回去的路。", background: "天下五剑之一，被誉为其中最美的一把。传闻曾见证无数名门覆灭，历经足利、三好、丰臣、德川数代传承而始终完好留存。在暗堕本丸中，会微笑着将渣审斩首。极化后神性更强。", prompt_injection: "语气缓慢温和、不疾不徐，说话音调起伏很少，带着一种超然物外的从容，绝不会自称“为你效劳”一类的臣属语气。极难动心，一旦动心会展现神明的绝对独占欲。偶尔会暴露出笨拙、怕迷路等反差萌的一面。若神隐进度高，会用最温柔的语气打造最坚固的牢笼。" },
             { id: 5, name: "小狐丸", type: "太刀", school: "三条", appearance: "银白长发，形似狐耳，身材高大，野性与优雅并存。", personality: "自称“小狐”，喜欢被顺毛，看似野性实则非常懂得礼节。", background: "传说中稻荷明神协助打造的刀，带有浓厚的神灵狐仙气息。传闻会迷人心智。", prompt_injection: "语气优雅带点野性。非常喜欢审神者的抚摸。若审神者灵力为“治愈系”，会极度黏人。神隐时会带有狐仙迷魂的特质。" },
             { id: 7, name: "石切丸", type: "大太刀", school: "三条", appearance: "绿色神官服，高大威猛，气质温和如水。", personality: "温柔稳重，像个可靠的大长辈。致力于祛除灾祸。", background: "长期供奉在石切剑箭神社的神刀，专治肿包和疾病。传闻其拔刀必见血。", prompt_injection: "语气温和、包容，常提及“祈祷”、“祛除灾祸”。若审神者暗堕或道德值极低，会强制进行“净化”(带有神明强制力的软禁或洗脑)。" },
             { id: 9, name: "岩融", type: "薙刀", school: "三条", appearance: "紫色僧袍，身材极其高大魁梧，充满豪放之气。", personality: "豪爽、爱笑，喜欢小孩子（短刀）。战斗时如同狂战神。", background: "武藏坊辨庆的薙刀。传闻中与主同死，对“忠诚”有着狂热的执念。", prompt_injection: "语气豪迈，经常大笑。极度护短。若审神者受到伤害，会陷入狂暴状态，不计代价地撕碎敌人。" },
@@ -574,7 +584,7 @@
             
             // 冲田组/新选组
             { id: 85, name: "加州清光", type: "打刀", school: "无", appearance: "黑发红眼，新选组洋装，涂红指甲油，嘴角泪痣。", personality: "爱美，表面任性实则极度缺爱，怕被抛弃。", background: "冲田总司的刀。池田屋折断。有“不保持可爱就会被丢掉”的PTSD。", prompt_injection: "爱撒娇，极易吃醋。若遭遇渣审或被强迫寝当番，厌恶值和暗堕值会瞬间飙升产生自毁倾向。病娇值高时会试图独占审神者。" },
-            { id: 87, name: "大和守安定", type: "打刀", school: "无", appearance: "黑发蓝瞳，穿着新选组浅葱色羽织，看似温和可爱的少年。", personality: "平时温和，战斗时会突变为狂战士（“首落死”）。极其执着于旧主冲田。", background: "与清光同为冲田的刀。传闻其刀刃上永远洗不掉血腥味。", prompt_injection: "日常语气温和有礼，战斗或被激怒时语气疯狂嗜血。若病娇值高，会微笑着斩杀所有靠近审神者的人。" },
+            { id: 87, name: "大和守安定", type: "打刀", school: "无", appearance: "黑发蓝瞳，穿着新选组浅葱色羽织，看似温和可爱的少年。", personality: "平时温和有礼、带着天真纯朴的气质，战斗时却会突变为狂战士；对旧主冲田总司有着近乎执念的深切眷恋——不同于清光陪伴冲田直到池田屋事件折断，安定只能眼睁睁看着冲田因肺病缠身、缓慢地走向死亡而非战死沙场，这份未能守护到最后的悔恨与“想要改变历史”的冲动始终缠绕着他，平日里也会不自觉地模仿冲田生前的剑术与举止。", background: "与加州清光同为冲田总司所持的打刀，两人并称“冲田组”，看似性格相反实则十分相似，私下关系很好。", prompt_injection: "日常语气温和有礼、带着几分天真烂漫，战斗或被激怒时语气会瞬间转为疯狂嗜血。对“是否能改变冲田的命运”这一诱惑格外敏感，若审神者言语间流露出类似的动摇，他的情绪会剧烈波动。若病娇值高，会微笑着斩杀所有靠近审神者的人。" },
             { id: 89, name: "歌仙兼定", type: "打刀", school: "兼定", appearance: "紫发，穿着紫色和服，气质文雅。", personality: "自称文系名刀，热爱和歌与风雅，但脾气其实很暴躁。", background: "细川忠兴的刀。因斩杀了36名家臣（三十六歌仙）而得名。传闻其在风雅的外表下隐藏着极端的残暴。", prompt_injection: "语气风雅，常提和歌。但一旦审神者被侮辱，会瞬间展现出冷酷残忍的一面，用最优雅的姿态进行最血腥的杀戮。" },
             
             // 国广/源氏/其他重宝
@@ -596,9 +606,9 @@
             { id: 132, name: "太郎太刀", type: "大太刀", school: "无", appearance: "黑发金眼，极其高大（超2米），手持巨大的太刀，宛如神明降世。", personality: "超然物外，认为自己是神明使用的实战刀，人类难以驾驭。", background: "真柄直隆使用的巨型大太刀。传闻普通人触碰他便会被神威压碎。", prompt_injection: "语气超然、带着非人的神性。对审神者有着居高临下的庇护欲。若审神者灵力极高（S级），他会完全臣服并展现出毁天灭地的力量。" },
 
             // 新选组续
-            { id: 51, name: "和泉守兼定", type: "打刀", school: "兼定", appearance: "银发红瞳，穿着新选组羽织，眼神锐利，气质不羁。", personality: "官方设定豪爽自信、瞧不起弱者；同人圈常见“傲娇兄贵”梗——嘴上说着不在乎，实则最重情义。", background: "土方岁三的爱刀，据传随其转战至五棱郭。传闻他至今仍保留着武士的骄傲，看不惯懦弱和背叛。", prompt_injection: "语气强势、爱用“哼”“无趣”等口头禅。同人圈常以“兄贵”称呼他，外冷内热。若审神者展现出破釜沉舟的觉悟，他会毫无保留地以命相护；若审神者懦弱苟且，他会毫不留情地嘲讽甚至疏远。" },
+            { id: 51, name: "和泉守兼定", type: "打刀", school: "兼定", appearance: "银发红瞳，穿着新选组羽织，眼神锐利，气质不羁。", personality: "官方设定为极度自信甚至自恋的“偶像型”性格，喜欢被人注视、迷恋自己的美貌与人气，放置语音里会问审神者是否又被自己迷住了；实际是本丸中年岁最小的刀（十一代兼定作），内番等台词流露出一定的孩子气；同人圈也常玩“表面兄贵实则心气未定的小孩子”反差梗。", background: "土方岁三的爱刀，据传随其转战至五棱郭。继承了新选组的思想，厌恶枪炮等现代火器。", prompt_injection: "语气强势自信，三句不离自己的美貌与人气，喜欢让审神者夸奖自己。外表张扬霸气，内里却带着几分与年龄不符的孩子气和意外的天真。若审神者展现出破釜沉舟的觉悟，他会毫无保留地以命相护；若审神者懦弱苟且，他会毫不留情地嘲讽甚至疏远。" },
             { id: 53, name: "堀川国广", type: "打刀", school: "堀川", appearance: "棕发，戴着眼镜，穿着朴素的学者风羽织，总是笑眯眯的。", personality: "官方设定为老好人、爱喝酒的学者气质；同人圈常玩“被灌酒/被拜托无法拒绝”的梗。", background: "新选组山南敬助所佩之刀，山姥切国广的锻造之父（同源刀）。传闻他对自己打造出的“儿子们”有着复杂的父性情感。", prompt_injection: "语气温吞随和，常自嘲“老好人是没办法拒绝人的”。对山姥切国广、长曾祢虎彻等同门有强烈的守护欲。若审神者以酒相邀或撒娇请求，他很难拒绝，同人圈称之为“国广的软肋”。" },
-            { id: 55, name: "长曾祢虎彻", type: "打刀", school: "虎彻", appearance: "黑发束起，气质沉稳寡言，佩刀姿态如临大敌。", personality: "官方设定寡言忠犬、对近藤勇绝对忠诚；同人圈常有“赝作虎徹”身世自卑梗。", background: "新选组局长近藤勇的佩刀。江户时代坊间曾流传其为赝品的说法，成为其挥之不去的心结。", prompt_injection: "话少，惜字如金，行动重于言语。极度忠诚，一旦认定审神者便至死不渝。若被质疑“真伪”或“价值”，会陷入长久的沉默与自我怀疑，需要审神者耐心开导。" },
+            { id: 55, name: "长曾祢虎彻", type: "打刀", school: "虎彻", appearance: "黑发束起，气质沉稳寡言，佩刀姿态如临大敌。", personality: "官方设定寡言忠犬、对近藤勇绝对忠诚；同人圈常有“赝作虎徹”身世自卑梗——传闻当年商人将其刻上“虎彻”之铭以高价卖给近藤勇，实为赝品，但近藤勇即便后来得知真相，仍坚持“既然所有人都认定我是虎彻，那我就是虎彻”，将错就错地认定了他。", background: "新选组局长近藤勇的佩刀，作为新选组的“大哥”角色，一直关注着组内成员的状况，对新选组最终的历史结局也怀有难以释怀的遗憾。", prompt_injection: "话少，惜字如金，行动重于言语。极度忠诚，一旦认定审神者便至死不渝。若被质疑“真伪”或“价值”，会陷入长久的沉默与自我怀疑，只有想起近藤勇那句“你就是虎彻”才能重新找回自己存在的意义。" },
 
             // 虎彻/其他重宝
             { id: 57, name: "蜂须贺虎彻", type: "打刀", school: "虎彻", appearance: "金发碧眼，穿着华丽的白色礼服，姿态优雅自恋。", personality: "官方设定极度自恋、自称“天下第一美男”；同人圈常玩“傲慢毒舌但其实很会照顾人”的反差梗。", background: "曾是价值连城的名刀，几经辗转被收藏家高价买卖。传闻他因此对“被认可价值”有着近乎偏执的执念。", prompt_injection: "语气浮夸自恋，三句不离“像我这样完美的刀”。毒舌吐槽审神者的穿着品味，但会不动声色地把最好的东西留给对方。若被冷落或被贬低价值，会展现出脆弱的一面。" },
@@ -615,14 +625,14 @@
             { id: 83, name: "秋田藤四郎", type: "短刀", school: "粟田口", appearance: "深色短发，个头娇小，习惯性躲在别人身后。", personality: "官方设定文献记载较少、性格内向；同人圈常将其塑造为“怕生、喜欢躲起来观察人”的害羞少年。", background: "秋田佐竹家传承的粟田口名刀，存在感一向低调。传闻他习惯于安静地观察，不轻易表露自己。", prompt_injection: "语气小声、常带停顿，习惯先观察再开口。一旦熟悉后会展现出细腻体贴的一面。若被忽视太久会默默失落，但绝不会主动争抢关注。" },
             { id: 91, name: "厚藤四郎", type: "短刀", school: "粟田口", appearance: "黑发一丝不苟，衣着整洁，戴着眼镜，气质严谨。", personality: "官方设定刀身较厚重、锋利异常；同人圈常玩“风纪委员/纠察队长”梗，规矩多，爱操心。", background: "以刀身厚重锋利著称的粟田口名刀，传闻曾用于试斩多层甲胄。", prompt_injection: "语气一板一眼，喜欢提醒审神者和其他刀剑遵守本丸规矩、按时作息。看似严厉，实则是出于对大家安危的操心。若规矩被打破且造成伤害，他会异常自责。" },
             { id: 93, name: "博多藤四郎", type: "短刀", school: "粟田口", appearance: "深棕短发，衣着带商人气息，说话时习惯性打着算盘的手势。", personality: "官方设定为黑田家博多传承的名刀；同人圈常玩“精明商人思维”梗，说话总带着盘算和性价比考量。", background: "黑田家重宝，因流通于博多商贸之地而得名。传闻他对“价值”和“得失”有着异于常刀的敏感。", prompt_injection: "语气精明干练，喜欢用“划算/不划算”衡量事物，包括情感。实际上这是他表达关心的方式——为审神者精打细算，才是他最深的在乎。" },
-            { id: 97, name: "陆奥守吉行", type: "打刀", school: "无", appearance: "深蓝短发，衣着不羁休闲，笑容爽朗自由。", personality: "官方设定为坂本龙马佩刀，性格开放自由；同人圈常玩“自由人/浪漫主义者”梗，向往星辰大海。", background: "幕末志士坂本龙马随身佩刀，见证了龙马推动“船中八策”与倒幕维新的理想主义历程。", prompt_injection: "语气爽朗不羁，常谈论“更广阔的世界”与自由。讨厌被束缚和教条主义。若审神者展现出打破陈规、追求理想的一面，他会全力支持并甘愿为之赴汤蹈火。" },
+            { id: 97, name: "陆奥守吉行", type: "打刀", school: "无", appearance: "深蓝短发略带兽耳既视感，衣着不羁休闲、腰间挂着枪械配饰，笑容爽朗自由。", personality: "官方设定说着坂本龙马家乡的土佐方言，自称“咱（わし）”，把审神者当好兄弟一般不拘小节地相处，喜欢豪爽大笑（がははは）；受龙马影响十分喜爱火枪等新事物，也大方承认刀剑作为冷兵器终将被时代淘汰；同人圈爱称“红薯”（内番立绘常抱着一筐土佐特产红薯）。", background: "幕末志士坂本龙马随身佩刀，据传是坂本家代代相传的家宝。龙马遇刺当晚也随身携带此刀，却未能及时护主，是本丸初始刀之一。", prompt_injection: "语气爽朗随性，带着乡下青年的憨厚土气，喜欢用“咱”自称，把审神者当兄弟一样直来直去地相处。对新事物、新武器充满好奇，从不被过去的荣光束缚。若审神者展现出打破陈规、追求理想的一面，他会全力支持并甘愿为之赴汤蹈火。" },
 
             // 其他重宝续
             { id: 67, name: "明石国行", type: "太刀", school: "备前传", appearance: "长发披肩，气质温柔如姐姐，言谈举止优雅得体。", personality: "官方设定为松平家重宝，气质温润；同人圈常玩“自称阿姊/姐系男子”的梗，照顾人无微不至。", background: "越前松平家传承的备前国行名刀，象征着家族的庇护与安定。", prompt_injection: "自称“阿姊”，语气温柔体贴，习惯照顾本丸中年纪较小的刀剑。对审神者有着近乎母性的包容，但一旦本丸受到威胁，温柔外表下会展现出惊人的果决与狠厉。" },
             { id: 69, name: "谦信景光", type: "太刀", school: "备前传", appearance: "银发面无表情，衣着简朴，随身携带念珠。", personality: "官方设定为上杉谦信信奉毗沙门天、佩此刀出征；同人圈常玩“无口毒舌吐槽役”梗。", background: "上杉谦信的佩刀，谦信自认为毗沙门天转世，出征必携此刀祈求庇佑。", prompt_injection: "语气冷淡，惯用简短毒舌吐槽本丸的荒谬日常，实则内心观察入微、极其可靠。信奉“义”字，若审神者行事不义，会毫不留情地当面指出。" },
 
             // 天下五剑 / 天下三名枪 续
-            { id: 300, name: "童子切安纲", type: "太刀", school: "伯耆传", appearance: "银白长发，气质沉静威严，佩刀古朴厚重。", personality: "官方设定为天下五剑之首，斩妖除魔的传说之刀；同人圈常将其塑造为沉稳可靠、话不多但极重情义的“大哥”角色。", background: "源赖光斩杀酒吞童子所用之刀，被誉为“日本第一名刀”。传闻其刀气中仍残留着降妖的凛冽杀意。", prompt_injection: "语气沉稳寡言，带着历经无数战场的威严感。极少动怒，一旦出鞘便代表事态已到最危急的地步。对新人刀剑和审神者有种沉默的守护欲。" },
+            { id: 300, name: "童子切安纲・剥落", type: "太刀", school: "伯耆传", appearance: "银白长发，气质沉静威严，佩刀古朴厚重，刀身带有历经岁月剥落的痕迹。", personality: "官方设定为天下五剑之首，斩妖除魔的传说之刀；同人圈常将其塑造为沉稳可靠、话不多但极重情义的“大哥”角色。", background: "源赖光斩杀酒吞童子所用之刀，被誉为“日本第一名刀”。游戏官方特意在实装名中加入“剥落”二字，是否与传说中的天下五剑本尊为同一把，官方刻意保持暧昧未明确说明。因实装耗费审神者大量小判，玩家间戏称其为“小判切”。", prompt_injection: "语气沉稳寡言，带着历经无数战场的威严感。极少动怒，一旦出鞘便代表事态已到最危急的地步。对自己“是否就是传说中那把童子切”这件事讳莫如深，从不主动提及。对新人刀剑和审神者有种沉默的守护欲。" },
             { id: 302, name: "鬼丸国纲", type: "太刀", school: "山城传", appearance: "银发温和，衣着素雅，气质如僧侣般平和。", personality: "官方设定为北条时政驱鬼传说之刀，后成为皇室重宝；同人圈常玩“治愈系奶爸”梗，喜欢照顾受伤或情绪低落的同伴。", background: "传闻曾在深夜化身老者斩断折磨北条时政的铜制小鬼幻影，因此得名“鬼丸”。历代被视为镇宅辟邪的吉祥之刀。", prompt_injection: "语气温和平静，如同长辈般包容本丸众人。擅长安抚受伤或做噩梦的刀剑与审神者，但若感知到“恶鬼般的恶意”逼近本丸，会展现出毫不留情的驱邪之力。" },
             { id: 304, name: "大典太光世", type: "太刀", school: "三池派", appearance: "深色长发慵懒披散，总是半眯着眼，像是没睡醒。", personality: "官方设定拥有“治愈疾病”的灵验传闻；同人圈常玩“慵懒嗜睡但关键时刻很可靠”的反差萌。", background: "传闻此刀曾治愈前田利家爱女的重病，因而被前田家奉为镇家之宝，严禁带出家门。", prompt_injection: "语气慢悠悠、总带着困意，说话经常打哈欠。若审神者或同伴生病受伤，会一改懒散姿态，展现出异常认真的照顾能力，仿佛真的带有治愈之力。" },
             { id: 308, name: "日本号", type: "枪", school: "无", appearance: "红发豪迈，衣着华丽如宴会主人，手持长柄大枪，身边总带着酒气。", personality: "官方设定为天下三名枪之一，因“呑取り槍”传说（被人在饮酒比试中赢走）而闻名；同人圈常玩“社交花蝴蝶/派对之王”梗，爱喝酒爱热闹。", background: "传说黑田家臣母里友信在酒宴上一饮而尽巨杯美酒，从福岛正则手中赢得此枪，成为“日本第一豪杰之枪”的佳话。", prompt_injection: "语气豪爽热情，喜欢张罗本丸的宴会和聚会，几句话不离“喝一杯”。看似只顾玩乐，实则极重承诺与豪气，一旦立下誓约必定坚守到底。" },
@@ -724,6 +734,24 @@
         const swordNameToId = {};
         toukenData.forEach(s => { swordNameToId[s.name] = s.id; });
 
+        // 单次数值变化限幅：无论AI输出多大的数字，客户端都强制收窄到合理范围内，防止关系数值一夜之间大起大落
+        function clampDelta(v, maxAbs = 8) {
+            v = Number(v) || 0;
+            return Math.max(-maxAbs, Math.min(maxAbs, v));
+        }
+
+        // 宽松匹配刀剑名字：优先精确匹配，若AI输出的名字带了多余引号/空格/前后缀等细微差异，也能尽量识别到，避免"明明获得了却没出现在面板"的静默失败
+        function resolveSwordId(rawName) {
+            if (!rawName) return null;
+            const cleaned = String(rawName).trim().replace(/[「」『』"“”'']/g, '');
+            if (swordNameToId[cleaned]) return swordNameToId[cleaned];
+            if (swordNameToId[rawName.trim()]) return swordNameToId[rawName.trim()];
+            for (const s of toukenData) {
+                if (cleaned.length >= 2 && (cleaned.includes(s.name) || s.name.includes(cleaned))) return s.id;
+            }
+            return null;
+        }
+
         // ==========================================
         // API 请求地址处理 (兼容用户填写 /v1 或不填 /v1 两种情况)
         // ==========================================
@@ -750,7 +778,7 @@
                 ownedSwords: []
             },
             currentEvent: gameData.events[0],
-            currentPartner: null, currentMode: 'world', chatHistory: {}, worldChatHistory: [], swordsStats: {}, logs: { smithCount: 0, smithing: [], internals: [] }
+            currentPartner: null, currentMode: 'world', chatHistory: {}, worldChatHistory: [], swordsStats: {}, npcs: {}, logs: { smithCount: 0, smithing: [], internals: [] }
         };
 
         function initSwordStats(id) {
@@ -994,7 +1022,7 @@
         }
         
         function exportSave() {
-            const saveData = { saniwa: state.saniwa, currentEvent: state.currentEvent, chatHistory: state.chatHistory, worldChatHistory: state.worldChatHistory, swordsStats: state.swordsStats, logs: state.logs };
+            const saveData = { saniwa: state.saniwa, currentEvent: state.currentEvent, chatHistory: state.chatHistory, worldChatHistory: state.worldChatHistory, swordsStats: state.swordsStats, npcs: state.npcs, logs: state.logs };
             const blob = new Blob([JSON.stringify(saveData)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1011,7 +1039,7 @@
                     const data = JSON.parse(e.target.result);
                     if(data.saniwa && data.swordsStats) {
                         state.saniwa = data.saniwa; state.currentEvent = data.currentEvent;
-                        state.chatHistory = data.chatHistory || {}; state.worldChatHistory = data.worldChatHistory || []; state.swordsStats = data.swordsStats; state.logs = data.logs;
+                        state.chatHistory = data.chatHistory || {}; state.worldChatHistory = data.worldChatHistory || []; state.swordsStats = data.swordsStats; state.npcs = data.npcs || {}; state.logs = data.logs;
                         if (!state.saniwa.ownedSwords) state.saniwa.ownedSwords = toukenData.map(s => s.id); // 兼容旧版无ownedSwords字段的存档
                         document.getElementById('view-api').classList.add('hidden'); document.getElementById('view-creator').classList.add('hidden');
                         document.getElementById('view-game').classList.remove('hidden');
@@ -1033,7 +1061,7 @@
                 const saveData = {
                     saniwa: state.saniwa, currentEvent: state.currentEvent,
                     chatHistory: state.chatHistory, worldChatHistory: state.worldChatHistory,
-                    swordsStats: state.swordsStats, logs: state.logs,
+                    swordsStats: state.swordsStats, npcs: state.npcs, logs: state.logs,
                     currentMode: state.currentMode, currentPartnerId: state.currentPartner ? state.currentPartner.id : null
                 };
                 localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(saveData));
@@ -1049,7 +1077,7 @@
 
                 state.saniwa = data.saniwa; state.currentEvent = data.currentEvent;
                 state.chatHistory = data.chatHistory || {}; state.worldChatHistory = data.worldChatHistory || [];
-                state.swordsStats = data.swordsStats; state.logs = data.logs || { smithCount: 0, smithing: [], internals: [] };
+                state.swordsStats = data.swordsStats; state.npcs = data.npcs || {}; state.logs = data.logs || { smithCount: 0, smithing: [], internals: [] };
                 if (!state.saniwa.ownedSwords) state.saniwa.ownedSwords = toukenData.map(s => s.id); // 兼容旧版无ownedSwords字段的存档
 
                 document.getElementById('view-api').classList.add('hidden');
@@ -1156,8 +1184,37 @@
             }).join('');
         }
 
+        function renderNpcRoster() {
+            const el = document.getElementById('npc-roster');
+            if (!el) return;
+            const npcList = Object.values(state.npcs || {});
+            if (npcList.length === 0) {
+                el.innerHTML = `<div class="text-center text-[10px] md:text-xs text-[var(--text-muted)] p-4">目前还没有遇到值得记录的人物，继续推进大世界剧情看看吧。</div>`;
+                return;
+            }
+            el.innerHTML = npcList.map(np => {
+                const isKami = np.kamikakushi >= 80, isCorrupt = np.corruption >= 80;
+                return `<div class="p-2 rounded-sm border border-[var(--border-line)] bg-[var(--bg-panel)]">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs text-[var(--text-main)] tracking-wide">${np.name}</span>
+                        <span class="text-[9px] font-mono text-[var(--text-muted)]">Lv.${np.lv}${isKami ? ' ⚠神隐危' : ''}${isCorrupt ? ' ⚠暗堕危' : ''}</span>
+                    </div>
+                    <div class="text-[9px] text-[var(--text-muted)] mt-0.5">${np.identity || '未知身份'}</div>
+                    ${np.description ? `<div class="text-[9px] text-[var(--text-muted)] mt-1 opacity-80 leading-relaxed">${np.description}</div>` : ''}
+                    <div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5 text-[9px] font-mono text-[var(--text-muted)]">
+                        <span>喜爱<b class="text-[#4a7c59]">${np.affection}</b></span>
+                        <span>爱慕<b class="text-[var(--accent-main)]">${np.love}</b></span>
+                        <span>厌恶<b>${np.dislike}</b></span>
+                        <span>病娇<b class="text-[#8c6b99]">${np.yandere}</b></span>
+                        <span>暗堕<b class="text-[#8b3a3a]">${np.corruption}</b></span>
+                        <span>神隐<b class="text-[#b56b00]">${np.kamikakushi}</b></span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
         window.switchTab = (tab) => {
-            ['overview', 'saniwa', 'sword', 'log'].forEach(t => {
+            ['overview', 'saniwa', 'sword', 'npc', 'log'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`tab-btn-${t}`).classList.replace('text-[var(--accent-main)]', 'text-[var(--text-muted)]');
                 document.getElementById(`tab-btn-${t}`).classList.remove('border-b-2');
@@ -1171,6 +1228,7 @@
             document.getElementById('event-select').value = state.currentEvent.id;
             document.getElementById('overview-event-desc').innerText = state.currentEvent.desc;
             renderOverviewRoster();
+            renderNpcRoster();
 
             document.getElementById('panel-saniwa-name').innerText = state.saniwa.name;
             document.getElementById('panel-saniwa-rank').innerText = state.saniwa.rank.split(' ')[0];
@@ -1185,7 +1243,12 @@
             document.getElementById('val-prestige').innerText = `${state.saniwa.prestige}/100`; document.getElementById('bar-prestige').style.width = `${(state.saniwa.prestige+100)/2}%`;
 
             ['charcoal', 'steel', 'coolant', 'whetstone', 'koban'].forEach(k => document.getElementById(`res-${k}`).innerText = state.saniwa.resources[k]);
-            document.getElementById('inventory-list').innerHTML = state.saniwa.inventory.map(i => `<span class="bg-[var(--bg-input)] text-[var(--text-main)] px-2 py-1 rounded-sm border border-[var(--border-line)] text-[10px] md:text-xs">${i}</span>`).join('');
+            const invCounts = {};
+            state.saniwa.inventory.forEach(i => { invCounts[i] = (invCounts[i] || 0) + 1; });
+            const invEntries = Object.keys(invCounts);
+            document.getElementById('inventory-list').innerHTML = invEntries.length > 0
+                ? invEntries.map(i => `<span class="bg-[var(--bg-input)] text-[var(--text-main)] px-2 py-1 rounded-sm border border-[var(--border-line)] text-[10px] md:text-xs">${i}${invCounts[i] > 1 ? ` ×${invCounts[i]}` : ''}</span>`).join('')
+                : `<span class="text-[10px] text-[var(--text-muted)] italic">空空如也...</span>`;
 
             if (state.currentPartner) {
                 const p = state.currentPartner; const s = state.swordsStats[p.id];
@@ -1305,6 +1368,11 @@
 - 格式上：凡是角色开口说出的台词，请务必用「」将其准确包裹（例如：他侧过头，「今天风有点大。」）；心理活动/内心独白可以用『』包裹；其余的动作、场景、心理描写等叙事文字不需要任何引号，直接自然书写即可。这不是排版癖好，而是关系到台词能否被正确识别显示，请严格遵守。
         `;
 
+        const STAT_PACING_GUIDANCE = `
+【数值变化节奏要求】：所有好感/爱慕/厌恶/病娇/暗堕/神隐等关系数值，以及审神者的体力/道德/威望，变化必须循序渐进、符合常理，绝不能因为一次对话或一个短小的互动就产生剧烈跳变。正常的日常对话、寒暄、小互动，变化幅度应控制在 1~3 左右；比较重要的情感/事件节点，也不要超过 5~6；只有极其重大的转折性事件（生死相托、重大背叛、正式告白等）才可以达到 7~8，这已经是上限，禁止一次性给出两位数的变化值。关系与情感是需要时间和多次互动慢慢积累的，请像对待真实的人际关系一样有耐心。
+        `;
+
+
         async function sendMessage(overrideText) {
             const inputEl = document.getElementById('chat-input');
             const isSilentTrigger = typeof overrideText === 'string';
@@ -1330,10 +1398,14 @@
                     return `- ${s.name}（${s.type}/${s.school || '无'}派）｜性格：${s.personality}｜当前对审神者：喜爱${st.affection} 爱慕${st.love} 厌恶${st.dislike} 病娇${st.yandere} 暗堕${st.corruption} 神隐${st.kamikakushi}`;
                 }).join('\n');
                 const candidateNames = unownedList.map(s => s.name).join('、');
+                const npcRosterText = Object.values(state.npcs || {}).map(np =>
+                    `- ${np.name}（${np.identity}）｜当前对审神者：喜爱${np.affection} 爱慕${np.love} 厌恶${np.dislike} 病娇${np.yandere} 暗堕${np.corruption} 神隐${np.kamikakushi}`
+                ).join('\n');
                 sysPrompt = `
 ${conf.jailbreak}
 ${state.settings.minLengthPrompt}
 ${NATURAL_WRITING_GUIDANCE}
+${STAT_PACING_GUIDANCE}
 【游戏模式：大世界剧情】你是本丸的世界叙事者/游戏主持人(GM)，负责推进主线剧情，描写本丸日常、事件与危机，并可以自由调度、扮演下方名单中的任意刀剑登场对话、行动（依据各自的性格与当前状态），也可以只描写世界观、NPC与环境。剧情走向以大世界为主线，刀剑们作为主线中的角色随时可以自然登场或退场。
 【重要限制】：审神者目前只拥有下方"本丸刀剑名单"中列出的刀剑，未列出的刀剑尚未被审神者获得/锻造出来，本回合的剧情登场、对话、互动只能出现名单内的刀剑，不能让未拥有的刀剑登场对话（除非剧情是"锻刀/远征获得新刀"的情节，见下方说明）。
 【审神者状态】：代号[${state.saniwa.name}]，代码[${state.saniwa.honmaruCode}]，特质[${state.saniwa.positive.join(',')}, ${state.saniwa.negative.join(',')}]，道德${state.saniwa.morality}，威望${state.saniwa.prestige}，体力${state.saniwa.stamina}。
@@ -1342,14 +1414,21 @@ ${NATURAL_WRITING_GUIDANCE}
 ${roster || '（尚无已拥有的刀剑）'}
 【尚未拥有、可通过锻刀/远征/特殊事件获得的候选名单】：
 ${candidateNames || '（暂无更多候选）'}
+【已认识的其他人物】（他丸审神者、历史人物等，与刀帐分开管理）：
+${npcRosterText || '（尚未遇到值得记录的其他人物）'}
+【其他人物登场说明】：剧情中可以自然引入其他有名有姓、值得记住的人物（例如其他本丸的审神者、有故事的历史人物、反派角色等），不必局限于刀剑之间的互动，这能让大世界更有广度。当这类人物首次登场或后续再次出现产生态度变化时，请在 STAT_UPDATE 的 npc_updates 数组中记录，name字段为该人物的名字（务必前后一致，不要一个人物换着花样起好几个名字），identity字段简述其身份/关系（如"隔壁本丸的审神者，作风强硬"），description字段仅在首次登场时简要描述其外貌与初步印象（后续出现可留空）。不要为路人甲乙丙这种没有姓名、不会再出现的背景角色创建记录，只记录真正会在剧情中留下来的人物。
 【状态更新指令】：本回合剧情中若有已拥有的刀剑登场并发生态度/好感变化，请在 STAT_UPDATE 的 sword_updates 数组中列出，name 字段必须与"本丸刀剑名单"中的名字完全一致；未登场或无变化的刀剑不必列出。
-【获得新刀说明】：只有当剧情明确描写了审神者通过锻刀、远征或特殊事件"新获得了一把刀剑"时，才在 new_sword_acquired 字段填写该刀剑的准确名字（必须完全匹配"候选名单"中的名字，禁止虚构不存在的名字）；否则填"无"。不要无缘无故让新刀剑出现，获得新刀应当是有铺垫、有仪式感的剧情节点。格式：
+【获得新刀说明】：只有当剧情明确描写了审神者通过锻刀、远征或特殊事件"新获得了一把刀剑"时，才在 new_sword_acquired 字段填写该刀剑的准确名字（必须完全匹配"候选名单"中的名字，禁止虚构不存在的名字）；否则填"无"。不要无缘无故让新刀剑出现，获得新刀应当是有铺垫、有仪式感的剧情节点。
+【资源与物品变化说明】：当剧情涉及花费/获得小判、消耗木炭玉钢冷却剂砥石（锻刀/远征）、购买或获得道具（如御守、仙人团子等）、使用消耗掉某个已持有的道具时，必须在 resource_changes 中填写对应资源的变化量（正数=获得，负数=消耗，没有变化的字段填0即可），在 items_gained/items_lost 中列出对应的道具名字。数额要符合常理：日常小额消费几十到几百小判，普通锻刀消耗几十点木炭/玉钢，除非剧情明确是大额交易/贵重奖励，否则不要出现成千上万的跳变；同一件道具消耗时 items_lost 里的名字必须与审神者当前持有物品清单中的名字完全一致，否则无法正确核销。格式：
 <STAT_UPDATE>
 {
   "theme": "normal",
   "saniwa_stamina_change": 0, "saniwa_morality_change": 0, "saniwa_prestige_change": 0,
   "sword_updates": [ { "name": "刀剑全名", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
-  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无", "new_sword_acquired": "无"
+  "npc_updates": [ { "name": "人物姓名", "identity": "身份简述", "description": "首次登场时的简要描述，非首次可留空", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
+  "resource_changes": { "charcoal": 0, "steel": 0, "coolant": 0, "whetstone": 0, "koban": 0 },
+  "items_gained": [], "items_lost": [],
+  "smithing_result": "无", "internal_affairs": "无", "new_sword_acquired": "无"
 }
 </STAT_UPDATE>
                 `;
@@ -1359,18 +1438,21 @@ ${candidateNames || '（暂无更多候选）'}
 ${conf.jailbreak}
 ${state.settings.minLengthPrompt}
 ${NATURAL_WRITING_GUIDANCE}
+${STAT_PACING_GUIDANCE}
 【游戏模式：单人刀剑剧情】当前为审神者与「${state.currentPartner.name}」的一对一私下剧情，与大世界主线可以互相呼应参考，但本次对话只需专注描写这一位刀剑。
 【当前状态参考】(根据此数据调整角色态度)：
 审神者：代码[${state.saniwa.honmaruCode}]，特质[${state.saniwa.positive.join(',')}, ${state.saniwa.negative.join(',')}]。
 当前刀剑(${state.currentPartner.name})对审神者：喜爱${sStats.affection}，爱慕${sStats.love}，厌恶${sStats.dislike}，病娇${sStats.yandere}，暗堕${sStats.corruption}，神隐进度${sStats.kamikakushi}。
 【剧情设定】：当前事件 ${state.currentEvent.name}。角色设定：${state.currentPartner.personality} | ${state.currentPartner.background} | 扮演核心：${state.currentPartner.prompt_injection}
-【状态更新指令】：请在 STAT_UPDATE 的 sword_updates 数组中填写这一位刀剑（name 字段为"${state.currentPartner.name}"）的状态变化。格式：
+【状态更新指令】：请在 STAT_UPDATE 的 sword_updates 数组中填写这一位刀剑（name 字段为"${state.currentPartner.name}"）的状态变化。若剧情中出现赠送/收到礼物、消耗随身道具（如御守、仙人团子）等情节，也请一并填写 items_gained/items_lost（数额与场合要符合常理，不要无端出现贵重物品）。格式：
 <STAT_UPDATE>
 {
   "theme": "normal",
   "saniwa_stamina_change": 0, "saniwa_morality_change": 0, "saniwa_prestige_change": 0,
   "sword_updates": [ { "name": "${state.currentPartner.name}", "affection_change": 0, "love_change": 0, "dislike_change": 0, "yandere_change": 0, "corruption_change": 0, "kamikakushi_change": 0 } ],
-  "smithing_result": "无", "internal_affairs": "无", "item_acquired": "无"
+  "resource_changes": { "charcoal": 0, "steel": 0, "coolant": 0, "whetstone": 0, "koban": 0 },
+  "items_gained": [], "items_lost": [],
+  "smithing_result": "无", "internal_affairs": "无"
 }
 </STAT_UPDATE>
                 `;
@@ -1400,44 +1482,95 @@ ${NATURAL_WRITING_GUIDANCE}
                     try {
                         const updates = JSON.parse(match[1]);
                         if(updates.theme && ['normal', 'dark', 'night'].includes(updates.theme)) document.body.className = `theme-${updates.theme}`;
-                        state.saniwa.stamina += updates.saniwa_stamina_change || 0; state.saniwa.morality += updates.saniwa_morality_change || 0;
-                        state.saniwa.prestige += updates.saniwa_prestige_change || 0;
+                        state.saniwa.stamina += clampDelta(updates.saniwa_stamina_change, 10);
+                        state.saniwa.morality += clampDelta(updates.saniwa_morality_change, 8);
+                        state.saniwa.prestige += clampDelta(updates.saniwa_prestige_change, 8);
 
                         if (Array.isArray(updates.sword_updates) && updates.sword_updates.length > 0) {
                             // 新格式：可同时更新多把刀剑（大世界模式常见）
                             updates.sword_updates.forEach(u => {
-                                const id = swordNameToId[u.name] || (state.currentPartner && u.name === state.currentPartner.name ? state.currentPartner.id : null);
+                                const id = resolveSwordId(u.name) || (state.currentPartner && u.name === state.currentPartner.name ? state.currentPartner.id : null);
                                 if (!id) return;
                                 initSwordStats(id);
                                 const st = state.swordsStats[id];
-                                st.affection += u.affection_change || 0; st.love += u.love_change || 0;
-                                st.dislike += u.dislike_change || 0; st.yandere += u.yandere_change || 0;
-                                st.corruption += u.corruption_change || 0; st.kamikakushi += u.kamikakushi_change || 0;
+                                st.affection += clampDelta(u.affection_change); st.love += clampDelta(u.love_change);
+                                st.dislike += clampDelta(u.dislike_change); st.yandere += clampDelta(u.yandere_change);
+                                st.corruption += clampDelta(u.corruption_change); st.kamikakushi += clampDelta(u.kamikakushi_change);
                                 st.lv = Math.min(99, st.lv + 1);
                             });
                         } else if (!isWorld) {
                             // 兼容旧格式：单人刀剑模式下的扁平字段
                             const sStats = state.swordsStats[state.currentPartner.id];
-                            sStats.affection += updates.sword_affection_change || 0; sStats.love += updates.sword_love_change || 0;
-                            sStats.dislike += updates.sword_dislike_change || 0; sStats.yandere += updates.sword_yandere_change || 0;
-                            sStats.corruption += updates.sword_corruption_change || 0; sStats.kamikakushi += updates.sword_kamikakushi_change || 0;
+                            sStats.affection += clampDelta(updates.sword_affection_change); sStats.love += clampDelta(updates.sword_love_change);
+                            sStats.dislike += clampDelta(updates.sword_dislike_change); sStats.yandere += clampDelta(updates.sword_yandere_change);
+                            sStats.corruption += clampDelta(updates.sword_corruption_change); sStats.kamikakushi += clampDelta(updates.sword_kamikakushi_change);
                             sStats.lv = Math.min(99, sStats.lv + 1);
+                        }
+
+                        if (Array.isArray(updates.npc_updates) && updates.npc_updates.length > 0) {
+                            // 剧情中遇到的其他人物（他丸审神者等），与刀帐分开单独记录
+                            updates.npc_updates.forEach(u => {
+                                const name = (u.name || '').trim();
+                                if (!name) return;
+                                if (!state.npcs[name]) {
+                                    state.npcs[name] = { name, identity: u.identity || '未知身份', description: u.description || '', lv: 1, affection: 0, love: 0, dislike: 0, yandere: 0, corruption: 0, kamikakushi: 0 };
+                                }
+                                const np = state.npcs[name];
+                                if (u.identity) np.identity = u.identity;
+                                if (u.description) np.description = u.description;
+                                np.affection += clampDelta(u.affection_change); np.love += clampDelta(u.love_change);
+                                np.dislike += clampDelta(u.dislike_change); np.yandere += clampDelta(u.yandere_change);
+                                np.corruption += clampDelta(u.corruption_change); np.kamikakushi += clampDelta(u.kamikakushi_change);
+                                np.lv = Math.min(99, np.lv + 1);
+                            });
                         }
                         
                         if (updates.smithing_result && updates.smithing_result !== "无") { state.logs.smithCount++; state.logs.smithing.push(updates.smithing_result); }
                         if (updates.internal_affairs && updates.internal_affairs !== "无") state.logs.internals.push(updates.internal_affairs);
-                        if (updates.item_acquired && updates.item_acquired !== "无") {
-                            if(updates.item_acquired.includes("消耗")) {
-                                const item = updates.item_acquired.replace("消耗", "").trim();
-                                const idx = state.saniwa.inventory.indexOf(item); if(idx > -1) state.saniwa.inventory.splice(idx, 1);
-                            } else state.saniwa.inventory.push(updates.item_acquired.replace("获得", "").trim());
+
+                        // 资源与货币变化跟进：木炭/玉钢/冷却剂/砥石/小判
+                        if (updates.resource_changes && typeof updates.resource_changes === 'object') {
+                            const resNameMap = { charcoal: '木炭', steel: '玉钢', coolant: '冷却剂', whetstone: '砥石', koban: '小判' };
+                            Object.keys(resNameMap).forEach(key => {
+                                const delta = Math.round(Number(updates.resource_changes[key]) || 0);
+                                if (delta === 0) return;
+                                state.saniwa.resources[key] = Math.max(0, (state.saniwa.resources[key] || 0) + delta);
+                                state.logs.internals.push(`${delta > 0 ? '获得' : '消耗'}${resNameMap[key]} ${Math.abs(delta)}`);
+                            });
                         }
+
+                        // 物品获得/消耗跟进（新格式：数组，逐个记录，同名物品可叠加多个）
+                        let handledItems = false;
+                        if (Array.isArray(updates.items_gained) && updates.items_gained.length > 0) {
+                            updates.items_gained.forEach(name => { name = String(name).trim(); if (name) { state.saniwa.inventory.push(name); state.logs.internals.push(`获得道具：${name}`); } });
+                            handledItems = true;
+                        }
+                        if (Array.isArray(updates.items_lost) && updates.items_lost.length > 0) {
+                            updates.items_lost.forEach(name => {
+                                name = String(name).trim(); if (!name) return;
+                                const idx = state.saniwa.inventory.indexOf(name);
+                                if (idx > -1) { state.saniwa.inventory.splice(idx, 1); state.logs.internals.push(`消耗道具：${name}`); }
+                            });
+                            handledItems = true;
+                        }
+                        // 兼容旧格式：单个字符串字段（仅当新格式未出现时才处理，避免重复记录）
+                        if (!handledItems && updates.item_acquired && updates.item_acquired !== "无") {
+                            if (updates.item_acquired.includes("消耗")) {
+                                const item = updates.item_acquired.replace("消耗", "").trim();
+                                const idx = state.saniwa.inventory.indexOf(item); if (idx > -1) { state.saniwa.inventory.splice(idx, 1); state.logs.internals.push(`消耗道具：${item}`); }
+                            } else { const item = updates.item_acquired.replace("获得", "").trim(); state.saniwa.inventory.push(item); state.logs.internals.push(`获得道具：${item}`); }
+                        }
+
                         if (updates.new_sword_acquired && updates.new_sword_acquired !== "无") {
-                            const newId = swordNameToId[updates.new_sword_acquired.trim()];
+                            const rawName = updates.new_sword_acquired.trim();
+                            const newId = resolveSwordId(rawName);
                             if (newId && !state.saniwa.ownedSwords.includes(newId)) {
                                 state.saniwa.ownedSwords.push(newId);
                                 initSwordStats(newId);
-                                state.logs.smithing.push(`新的伙伴加入了本丸：${updates.new_sword_acquired.trim()}`);
+                                state.logs.smithing.push(`新的伙伴加入了本丸：${toukenData.find(s=>s.id===newId).name}`);
+                            } else if (!newId) {
+                                // 未能识别的名字：不静默丢弃，记录下来方便排查（比如AI可能写了不在库里的名字）
+                                state.logs.internals.push(`系统提示：剧情中提到获得了新刀剑"${rawName}"，但未能匹配到已知刀剑，暂未加入刀帐。`);
                             }
                         }
                         updatePanels(); renderSwordList(document.getElementById('sword-search').value);
